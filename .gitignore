@@ -1,0 +1,25 @@
+# --- System Junk ---
+.DS_Store
+~$*
+**/~$*
+
+# --- R Studio Temp Files (Everywhere) ---
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.RDataTmp*
+**/.RDataTmp*
+
+# --- BIG DATA FOLDERS (The Underscore Fix) ---
+Meta_Data/
+Final_Data/
+Raw_Data/
+Outputs/
+
+
+
+# --- Just in case you have space versions too ---
+Meta Data/
+Final Data/
+Raw Data/

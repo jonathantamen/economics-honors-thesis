@@ -1,0 +1,161 @@
+---
+title: "1z Exploratory Analysis"
+author: "Jonathan"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Imports
+
+Document set-up.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd('/Users/jonat/Library/CloudStorage/OneDrive-ClarkUniversity/CU Courses/Economics Honors Thesis/Scripts')
+options(scipen = 999)
+```
+
+Library imports.
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(readr)
+library(stringr)
+```
+
+Raw Data import.
+
+```{r}
+org_data = readRDS(
+  "../Final_Data/clean_master_data.rds"
+  )
+```
+
+# Data Exploration
+
+I want to start with some fast facts of my data (length of years, number of unique organizations, number of organizations with data for all years).
+
+In addition, some things I wish to explore of my key variables (program expense, government revenues, services revenues, and various fixed effects like age, state of HQ, and type of organization):
+
+-   DONE. ~~number of observations per year~~
+-   means, mins, max, and standard deviations
+-   occurrences of null / NAs
+
+Then, I will compile the results into a table and possibly a few graphics for my upcoming presentation.
+
+## Meta Data Facts
+
+```{r}
+# number of observations, divided per year
+unique_returns_by_year = org_data %>%
+  # 1. Group the data by the Year column (using your specific column name)
+  group_by(YEAR) %>%
+  # 2. Summarize by counting the DISTINCT (unique) ORG_EIN values
+  summarise(unique_returns = n_distinct(ORG_EIN))
+
+plot_returns = ggplot(data= unique_returns_by_year, aes(x = factor(YEAR), y = unique_returns))+
+  geom_col(fill = "purple") +
+  geom_text(aes(label = unique_returns), vjust = -0.5) +
+  labs(
+    title = "Total number of Form 990 Returns",
+    subtitle = "Summarized by year, from 2009-2023",
+    y = "Number of returns",
+    x = "Year"
+  )
+print(plot_returns)
+```
+Saving the plot.
+```{r}
+ggsave("../Outputs/total_returns.png", plot = plot_returns)
+
+```
+
+## Key Variables
+
+### Defining
+```{r}
+key_variables = org_data %>% 
+  select(
+    # Demand side variables
+    F9_09_EXP_GRANT_US_ORG_TOT,
+    F9_09_EXP_GRANT_US_INDIV_TOT,
+    F9_09_EXP_TOT_PROG,
+    
+    # Supply side variables
+    F9_08_REV_CONTR_FED_CAMP, 
+    F9_08_REV_CONTR_FUNDR_EVNT, 
+    F9_08_REV_CONTR_GOVT_GRANT, 
+    F9_08_REV_CONTR_MEMBSHIP_DUE, 
+    F9_08_REV_PROG_TOT_TOT,
+    
+    #Fixed effect variables
+    #F9_00_ORG_ADDR_STATE,
+    #F9_00_YEAR_FORMATION,
+    #F9_03_PROG_CODE
+  )
+
+# Temporary code fix to remove negatives in a column I forgot about.
+key_variables = key_variables %>%
+  filter(if_all(
+    .cols = all_of("F9_08_REV_PROG_TOT_TOT"),
+    .fns = ~ .x >= 0
+  ))
+```
+
+### Summary Statistics
+```{r}
+library(psych)
+summary_table = describe(key_variables)
+print(summary_table)
+```
+```{r}
+library(dplyr)
+
+summary_table <- key_variables %>%
+  summarise(across(
+    everything(),
+    list(
+      N = ~sum(!is.na(.)),
+      Mean = ~mean(., na.rm = TRUE),
+      SD = ~sd(., na.rm = TRUE),
+      Min = ~min(., na.rm = TRUE),
+      Max = ~max(., na.rm = TRUE)
+    )
+  ))
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+summary_table_tidy <- summary_table %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = c("variable", "stat"),
+    names_sep = "_(?=[^_]+$)"
+  ) %>%
+  pivot_wider(
+    names_from = stat,
+    values_from = value
+  )
+
+```
+
+```{r}
+summary_table_tidy <- summary_table_tidy %>%
+  mutate(variable = gsub("^F9_", "", variable))
+```
+
+```{r}
+library(modelsummary)
+
+
+datasummary_df(
+  summary_table_tidy,
+  output = "../Outputs/summary_statistics.docx"
+)
+
+```
+
