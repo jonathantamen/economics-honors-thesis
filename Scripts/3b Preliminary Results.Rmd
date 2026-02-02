@@ -1,0 +1,207 @@
+---
+title: "3b Preliminary Results"
+author: "Jonathan"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Imports
+```{r}
+org_data = readRDS("../Final_Data/clean_master_data.rds")
+
+#Packages
+library(dplyr)
+```
+
+# Regression 0.1
+The first regression will be as simple as possible to find any sort of correlation. 
+
+Log(Program Expenses) on GDP Change %.
+
+```{r}
+#Setup code
+regression_variables = org_data %>%
+  select(F9_09_EXP_TOT_PROG, gdp_change_percent) %>%
+  
+  rename( #renaming to match all conventions and make them easier to understand
+    total_program_expenses = F9_09_EXP_TOT_PROG
+  ) %>%
+  
+  mutate(
+    log_program_expenses = log(total_program_expenses + 1)
+  )
+```
+
+```{r}
+#Regression code
+model1 = lm(log_program_expenses ~ gdp_change_percent, data = regression_variables)
+```
+
+```{r}
+#Output code
+summary(model1)
+```
+
+This regression tells me that for every 1 unit change in real GDP (1% increase), is correlated with a 5.3% decrease in total program expenses. This result is statistically significant.  
+
+# Regression 0.2
+Now, I want to add a variable for each year of data, to control time-variant factors.
+```{r}
+#Setup code
+regression_variables = org_data %>%
+  select(F9_09_EXP_TOT_PROG, gdp_change_percent, YEAR) %>%
+  
+  rename( #renaming to match all conventions and make them easier to understand
+    total_program_expenses = F9_09_EXP_TOT_PROG,
+    year = YEAR
+  ) %>%
+  
+  mutate(
+    log_program_expenses = log(total_program_expenses + 1)
+  )
+```
+
+```{r}
+#Regression code
+model2 = lm(log_program_expenses ~ gdp_change_percent + factor(year), data = regression_variables)
+```
+
+```{r}
+#Output code
+summary(model2)
+```
+This regression tells me that for every 1 unit (1% increase) in real GDP, total program expenses decrease by about 4.2%. This result is statistically significant. 
+
+# Regression 0.3
+Now, I want to include state-fixed effects to improve my model.
+```{r}
+#Setup code
+regression_variables = org_data %>%
+  select(F9_09_EXP_TOT_PROG, gdp_change_percent, YEAR, F9_00_ORG_ADDR_STATE) %>%
+  
+  rename( #renaming to match all conventions and make them easier to understand
+    total_program_expenses = F9_09_EXP_TOT_PROG,
+    year = YEAR,
+    state = F9_00_ORG_ADDR_STATE
+  ) %>%
+  
+  mutate(
+    log_program_expenses = log(total_program_expenses + 1)
+  )
+```
+
+```{r}
+#Regression code
+model3 = lm(log_program_expenses ~ gdp_change_percent + factor(year) + factor(state), data = regression_variables)
+```
+
+```{r}
+#Output code
+summary(model3)
+```
+This regression tells me that when controlling for states, the effect of state GDP is actually non existent, statistically. However, being in a different states does have a statistical effect on program expenses. Also, being in a different year does have a statistical effect on program expenses. 
+
+# Regression 0.4
+Now, I want to add industry fixed effects to my regression by controlling for industries of non-profits.
+```{r}
+#Setup code
+regression_variables = org_data %>%
+  select(F9_09_EXP_TOT_PROG, gdp_change_percent, YEAR, F9_00_ORG_ADDR_STATE, activity_category) %>%
+  
+  rename( #renaming to match all conventions and make them easier to understand
+    total_program_expenses = F9_09_EXP_TOT_PROG,
+    year = YEAR,
+    state = F9_00_ORG_ADDR_STATE,
+    industry = activity_category
+  ) %>%
+  
+  mutate(
+    log_program_expenses = log(total_program_expenses + 1),
+    industry = toupper(trimws(industry))
+    )
+```
+
+```{r}
+#Regression code
+model4 = lm(log_program_expenses ~ gdp_change_percent + factor(year) + factor(state) + factor(industry), data = regression_variables)
+```
+
+```{r}
+#Output code
+summary(model4)
+```
+This regression tells me that there is now a negative correlation again with state gdp, but it is not statistically significant. Also, being in certain industries has a statistically significant effect on program expenses. 
+
+In other words, 
+
+# Regression 1.0
+Finally, I will hold total revenues of the organization as fixed, by controlling it as a variable in the regression, to eliminate any effeect that changing budgets has on changing program expenses. By isolating this effect, I (presumably) am left with out how much changing program expenses depends on responding to changing demand, since GDP raises demand for non-profits. 
+
+```{r}
+#Setup code
+regression_variables = org_data %>%
+  select(F9_09_EXP_TOT_PROG, gdp_change_percent, YEAR, F9_00_ORG_ADDR_STATE, activity_category, F9_08_REV_TOT_TOT) %>%
+  
+  rename( #renaming to match all conventions and make them easier to understand
+    total_program_expenses = F9_09_EXP_TOT_PROG,
+    year = YEAR,
+    state = F9_00_ORG_ADDR_STATE,
+    industry = activity_category,
+    total_revenue = F9_08_REV_TOT_TOT
+  ) %>%
+  
+  mutate(
+    log_program_expenses = log(total_program_expenses + 1),
+    industry = toupper(trimws(industry)),
+    log_revenue = log(total_revenue + 1)
+    )
+```
+
+```{r}
+#Regression code
+model5 = lm(log_program_expenses ~ gdp_change_percent + + log_revenue + factor(year) + factor(state) + factor(industry), data = regression_variables)
+```
+
+```{r}
+#Output code
+summary(model5)
+```
+This regression now controls for all the variables I can...
+
+#Regression 2.0
+To further improve my analysis, I want to control for each non-profit organization itself. To do this, I use a new regression package to compare each observation to itself.
+
+```{r}
+#Setup code
+regression_variables = org_data %>%
+  select(F9_09_EXP_TOT_PROG, gdp_change_percent, YEAR, F9_00_ORG_ADDR_STATE, activity_category, F9_08_REV_TOT_TOT, ORG_EIN) %>%
+  
+  rename( #renaming to match all conventions and make them easier to understand
+    total_program_expenses = F9_09_EXP_TOT_PROG,
+    year = YEAR,
+    state = F9_00_ORG_ADDR_STATE,
+    industry = activity_category,
+    total_revenue = F9_08_REV_TOT_TOT,
+    organization_ein = ORG_EIN
+  ) %>%
+  
+  mutate(
+    log_program_expenses = log(total_program_expenses + 1),
+    industry = toupper(trimws(industry)),
+    log_revenue = log(total_revenue + 1)
+    )
+```
+
+```{r}
+#Regression code
+model6 = feols(log_program_expenses ~ gdp_change_percent + log_revenue | organization_ein + year + state + industry, data = regression_variables)
+```
+```{r}
+#Output code
+summary(model6, cluster = ~organization_ein)
+```
+
