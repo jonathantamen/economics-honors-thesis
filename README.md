@@ -6,6 +6,8 @@
 
 **Research Question:** What 501(c)(3) non-profit organization financial practices are best correlated with expanding charity programs in good and bad times?
 
+This README is still in progress.
+
 # Instructions
 
 Follow these instructions in order, to replicate the research process.
