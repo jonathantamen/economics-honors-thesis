@@ -69,6 +69,7 @@ org_data = org_data %>% # This function replaces all of the nulls in the above c
 # Here, I will remove any negative values in specific financial variables.
 # Negative revenues or expenses are impossible to compute with.
 # Also, they are rare in the data set (occuring ~500 times)
+
 negatives_to_remove = c(
   # Demand side variables
   "F9_09_EXP_GRANT_US_ORG_TOT",      
@@ -88,6 +89,7 @@ negatives_to_remove = c(
   "F9_08_REV_CONTR_GOVT_GRANT",      
   "F9_08_REV_CONTR_OTH",            
   "F9_08_REV_CONTR_TOT",
+  "F9_08_REV_TOT_TOT",
   "F9_08_REV_TOT_TOT"
 )
 org_data = org_data %>%
