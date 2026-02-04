@@ -20,9 +20,9 @@ org_data = readRDS(
 gdp_data = readRDS("../Final_Data/gdp_data.rds")
 
 gdp_data <- gdp_data %>%
-  mutate(YEAR = as.numeric(YEAR)) # Making sure data types match
+  mutate(YEAR = as.integer(YEAR)) # Making sure data types match
 org_data <- org_data %>%
-  mutate(YEAR = as.numeric(Year)) # Making sure data types match
+  mutate(YEAR = as.integer(Year)) # Making sure data types match
 
 # Import activity type data
 activity_data <- readRDS("../Final_Data/activity_data.rds")

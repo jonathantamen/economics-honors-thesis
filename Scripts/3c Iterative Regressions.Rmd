@@ -13,13 +13,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 **From code "3b Preliminary Results:"** To improve this regression,
 
-1.  I want to exclude outliers. So, drop organizations that have multiple years of zero program expenses and organizations that are so large they even skew log(revenues) and may not need to respond at all the economic conditions.
+1.  DONE~~. I want to exclude outliers. So, drop organizations that have multiple years of zero program expenses and organizations that are so large they even skew log(revenues) and may not need to respond at all the economic conditions.~~
+1b. I want to exclude outliers. So, drop schools and hospitals that are not a type of organization that fluctuates directly with economic conditions (demand is more inelastic).
 
 2.  NOT POSSIBLE. ~~I want to exclude multi-state non-profits. So, a subset of the the data which would be limited to only local non-profit organizations that do activities within their own state and would be more closely responding to the local conditions instead of the needs of the country or multiple states.~~
 
-3.  I want to try excluding non-profits that did not exist in the Covid-19 recession. So, a subset of the data which would be limited only to non-profits that responded (in any extent) to an economic recession.
+3.  DONE. ~~I want to try excluding non-profits that did not exist in the Covid-19 recession. So, a subset of the data which would be limited only to non-profits that responded (in any extent) to an economic recession.~~
 
-4.  Further, I want to try a subset of only organizations that expanded during Covid-19, to see if my variables interact with them differently. I may do this through a Boolean, interaction variable.
+4.  DONE. ~~Further, I want to try a subset of only organizations that expanded during Covid-19, to see if my variables interact with them differently. I may do this through a Boolean, interaction variable.~~
 
 ```{r}
 org_data = readRDS("../Final_Data/clean_master_data.rds")
@@ -34,7 +35,7 @@ library(fixest)
 ```{r}
 #Setup code
 regression_variables = org_data %>%
-  select(F9_09_EXP_TOT_PROG, gdp_change_percent, YEAR, F9_00_ORG_ADDR_STATE, activity_category, F9_08_REV_TOT_TOT, ORG_EIN) %>%
+  select(F9_09_EXP_TOT_PROG, gdp_change_percent, YEAR, F9_00_ORG_ADDR_STATE, activity_category, F9_08_REV_TOT_TOT, ORG_EIN, org_type) %>%
   
   rename( #renaming to match all conventions and make them easier to understand
     total_program_expenses = F9_09_EXP_TOT_PROG,
@@ -69,10 +70,15 @@ orgs_with_zeros = regression_variables %>%
 # Remove outliers based on log_revenue (top 1% largest orgs)
 revenue_threshold = quantile(regression_variables$log_revenue, 0.99, na.rm = TRUE)
 
-# Create filtered dataset
+# Drop schools and churches
+
+
+# Create filtered data set
 regression_no_outliers = regression_variables %>%
-  filter(!organization_ein %in% orgs_with_zeros,
-         log_revenue <= revenue_threshold)
+  filter(!organization_ein %in% orgs_with_zeros, #exclude zero expense orgs
+         log_revenue <= revenue_threshold, #exclude top 1% revenue orgs
+         org_type == "Neither" #exclude schools and churches
+         )
 
 # Run regression without outliers
 model_no_outliers = feols(log_program_expenses ~ gdp_change_percent + log_revenue | 
@@ -114,7 +120,7 @@ summary(model_covid_orgs)
 Creating an indicator for organizations that expanded during COVID and testing interaction effects:
 
 ```{r}
-# Identify organizations that expanded during COVID (2019-2020)
+# Identify organizations that expanded during COVID (2019-2020). Thanks, AI.
 covid_expansion = regression_covid_orgs %>%
   filter(year %in% c(2019, 2020)) %>%
   arrange(organization_ein, year) %>%
@@ -142,14 +148,5 @@ model_expansion_interaction = feols(
 summary(model_expansion_interaction)
 ```
 
-## Compare All Models
+# Next Steps?
 
-```{r}
-# Create comparison table
-etable(
-       model_no_outliers,
-       model_covid_orgs,
-       model_expansion_interaction,
-       headers = c( "No Outliers", 
-                   "COVID Orgs", "COVID Expansion"))
-```

@@ -7,7 +7,6 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-setwd('/Users/jonat/Library/CloudStorage/OneDrive-ClarkUniversity/CU Courses/Economics Honors Thesis/Scripts')
 library(dplyr)
 library(ggplot2)
 library(tidyverse)
@@ -16,35 +15,35 @@ library(stringr)
 options(scipen = 999)
 ```
 
-## Import Data
+# Import Data
 First, I will need to combine my 3 data frames into one for the whole country.
 ```{r}
-activity_data_1 = read_csv("../Raw Data/IRS Activity Codes/eo1.csv", 
-                           col_types = cols(CLASSIFICATION = col_character()))
+activity_data_1 = read_csv("../Raw_Data/IRS Activity Codes/eo1.csv") %>%
+  mutate(across(everything(), as.character))
 
-activity_data_2 = read_csv("../Raw Data/IRS Activity Codes/eo2.csv", 
-                           col_types = cols(CLASSIFICATION = col_character()))
+activity_data_2 = read_csv("../Raw_Data/IRS Activity Codes/eo2.csv") %>%
+  mutate(across(everything(), as.character))
 
-activity_data_3 = read_csv("../Raw Data/IRS Activity Codes/eo3.csv", 
-                           col_types = cols(CLASSIFICATION = col_character()))
+activity_data_3 = read_csv("../Raw_Data/IRS Activity Codes/eo3.csv") %>%
+  mutate(across(everything(), as.character))
 
 # Combining
-activity_data = bind_rows(activity_data_1, activity_data_2, activity_data_3)
-
+activity_data_raw = bind_rows(activity_data_1, activity_data_2, activity_data_3)
+```
+```{r}
 # Now, filter to just EIN and activity code variables ()
-activity_data = activity_data %>%
-  select(EIN, NTEE_CD, ACTIVITY) %>%
+activity_data_formatted = activity_data_raw %>%
+  select(EIN, NTEE_CD, ACTIVITY, FOUNDATION) %>%
   mutate(EIN = as.numeric(EIN))
 ```
 
+# Data Formatting
 ## Matching Categories
 Right now, I have NTEE codes and activity codes, depending on the age of the non-profit organization. I want to translate them all to the same categories, using NTEE codes as the template since it is the modern version of activity categorizing for the IRS.
 ```{r}
 library(dplyr)
-
-
 # This function translates every activity_code (the old version) into new categories into a new column.
-activity_data <- activity_data %>% # Thanks, AI. 
+activity_data_formatted <- activity_data_formatted %>% # Thanks, AI for writing the function.
   mutate(
     activity_code = as.numeric(substr(ACTIVITY, 1, 3))
   ) %>%
@@ -131,18 +130,72 @@ activity_data <- activity_data %>% # Thanks, AI.
   ))
 
 ```
-
-
-## Saving Data
 ```{r}
-# Now, filter to just EIN and activity code variables ()
-activity_data = activity_data %>%
-  select(EIN, activity_category) %>%
-  mutate(EIN = as.numeric(EIN))
+#This function converts the new activity categories into more easily understood string values, while maintaining data efficiency by using factor() data format.
+activity_data_formatted = activity_data_formatted %>%
+mutate(activity_category = case_when(
+    activity_category == "A" ~ "Arts, Culture & Humanities",
+    activity_category == "B" ~ "Education",
+    activity_category == "C" ~ "Environment",
+    activity_category == "D" ~ "Animal-Related",
+    activity_category == "E" ~ "Health Care",
+    activity_category == "F" ~ "Mental Health & Crisis Intervention",
+    activity_category == "G" ~ "Voluntary Health Associations & Medical Disciplines",
+    activity_category == "H" ~ "Medical Research",
+    activity_category == "I" ~ "Crime & Legal-Related",
+    activity_category == "J" ~ "Employment",
+    activity_category == "K" ~ "Food, Agriculture & Nutrition",
+    activity_category == "L" ~ "Housing & Shelter",
+    activity_category == "M" ~ "Public Safety",
+    activity_category == "N" ~ "Recreation & Sports",
+    activity_category == "O" ~ "Youth Development",
+    activity_category == "P" ~ "Human Services",
+    activity_category == "Q" ~ "International, Foreign Affairs",
+    activity_category == "R" ~ "Civil Rights, Social Action & Advocacy",
+    activity_category == "S" ~ "Community Improvement & Capacity Building",
+    activity_category == "T" ~ "Philanthropy, Voluntarism & Grantmaking",
+    activity_category == "U" ~ "Science & Technology",
+    activity_category == "V" ~ "Social Science",
+    activity_category == "W" ~ "Public & Societal Benefit",
+    activity_category == "X" ~ "Religion-Related",
+    activity_category == "Y" ~ "Mutual & Membership Benefit",
+    activity_category == "Z" ~ "Unknown or Unclassified",
+)) %>%
+  mutate(activity_category = factor(activity_category))
+
 ```
 
+
+## Organization Outlier Types
 ```{r}
-saveRDS(activity_data, "../Final_Data/activity_data.rds")
+#Now, I want to turn FOUNDATION column into a factor for only if organization is a school, church, or neither.
+# Add this after line 31 (after combining the datasets)
+
+activity_data_formatted <- activity_data_formatted %>%
+  mutate(org_type = case_when(
+    FOUNDATION == 10 ~ "Church",
+    FOUNDATION == 11 ~ "School",
+    TRUE ~ "Neither"
+  )) %>%
+  # Convert to factor with specified levels
+  mutate(org_type = factor(org_type, levels = c("School", "Church", "Neither")))
+```
+
+# Saving
+```{r}
+#First, I can drop the old columns I no longer need..
+activity_data_formatted = activity_data_formatted %>%
+  select(-c(
+    ACTIVITY, NTEE_CD, activity_code, FOUNDATION
+  )
+         ) %>%
+  mutate( #Improving data storage efficiency
+    EIN = as.integer(EIN),
+    activity_category = factor(activity_category)
+    )
+```
+```{r}
+saveRDS(activity_data_formatted, "../Final_Data/activity_data.rds")
 ```
 
 
