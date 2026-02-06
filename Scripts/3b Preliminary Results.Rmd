@@ -43,7 +43,7 @@ regression_variables = org_data %>%
 
 ```{r}
 #Regression code
-model1 = lm(log_program_expenses ~ gdp_change_percent, data = regression_variables)
+model1 = feols(log_program_expenses ~ gdp_change_percent, data = regression_variables)
 ```
 
 ```{r}
@@ -74,7 +74,7 @@ regression_variables = org_data %>%
 
 ```{r}
 #Regression code
-model2 = lm(log_program_expenses ~ gdp_change_percent + factor(year), data = regression_variables)
+model2 = feols(log_program_expenses ~ gdp_change_percent | year, data = regression_variables)
 ```
 
 ```{r}
@@ -106,7 +106,7 @@ regression_variables = org_data %>%
 
 ```{r}
 #Regression code
-model3 = lm(log_program_expenses ~ gdp_change_percent + factor(year) + factor(state), data = regression_variables)
+model3 = feols(log_program_expenses ~ gdp_change_percent | year + state, data = regression_variables)
 ```
 
 ```{r}
@@ -140,7 +140,7 @@ regression_variables = org_data %>%
 
 ```{r}
 #Regression code
-model4 = lm(log_program_expenses ~ gdp_change_percent + factor(year) + factor(state) + factor(industry), data = regression_variables)
+model4 = feols(log_program_expenses ~ gdp_change_percent | year + state + industry, data = regression_variables)
 ```
 
 ```{r}
@@ -182,7 +182,7 @@ regression_variables = org_data %>%
 
 ```{r}
 #Regression code
-model5 = lm(log_program_expenses ~ gdp_change_percent + log_revenue + factor(year) + factor(state) + factor(industry), data = regression_variables)
+model5 = feols(log_program_expenses ~ gdp_change_percent + log_revenue | year + state + industry, data = regression_variables)
 ```
 
 ```{r}
@@ -190,7 +190,7 @@ model5 = lm(log_program_expenses ~ gdp_change_percent + log_revenue + factor(yea
 summary(model5)
 ```
 
-# Regression 1.0 
+# Regression 1.0
 
 Finally, I want to control for each non-profit organization itself. To do this, I use a new regression package to compare each organization to itself.
 
@@ -224,7 +224,7 @@ model6 = feols(log_program_expenses ~ gdp_change_percent + log_revenue | organiz
 
 ```{r}
 #Output code
-summary(model6, cluster = ~organization_ein)
+summary(model6)
 ```
 
 This regression tells me that for every 1 unit (1%) increase in real GDP, program expenses actually increase by about 0.1%, though this result is not statistically significant. Additionally, for every 1 unit (1%) increase in revenues, program expenses increase by 0.84%, and this result is statistically significant.
