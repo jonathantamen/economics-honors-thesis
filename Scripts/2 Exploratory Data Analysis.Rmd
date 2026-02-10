@@ -6,28 +6,21 @@ output: html_document
 ---
 
 # Imports
-
-Document set-up.
-
 ```{r setup, include=FALSE}
+#Document setup
 knitr::opts_chunk$set(echo = TRUE)
-setwd('/Users/jonat/Library/CloudStorage/OneDrive-ClarkUniversity/CU Courses/Economics Honors Thesis/Scripts')
 options(scipen = 999)
 ```
-
-Library imports.
-
 ```{r}
+#Imports
 library(dplyr)
 library(ggplot2)
 library(tidyverse)
 library(readr)
 library(stringr)
 ```
-
-Raw Data import.
-
 ```{r}
+#Data import
 org_data = readRDS(
   "../Final_Data/clean_master_data.rds"
   )
@@ -157,5 +150,140 @@ datasummary_df(
   output = "../Outputs/summary_statistics.docx"
 )
 
+```
+
+
+# Exploring Data Filtering
+## Program Expenses
+Before I filter out any organizations based on not having program expenses, I want to check the distribution of this trend. 
+```{r}
+org_data <- org_data %>% arrange(ORG_EIN, YEAR)
+
+# Step 2: Calculate the distribution of MAX consecutive zero-expense years
+consecutive_dist <- org_data %>%
+  filter(YEAR <= 2020) %>% # I want to keep the Covid effect
+  group_by(ORG_EIN) %>%
+  summarize(max_consecutive_zeros = {
+    runs <- rle(F9_09_EXP_TOT_PROG == 0)
+    # Identify the maximum length where the value is TRUE (i.e., it was a zero)
+    if(any(runs$values)) max(runs$lengths[runs$values]) else 0
+  }) %>%
+  count(max_consecutive_zeros)
+
+print(consecutive_dist)
+```
+From this table, I can see that there are a few thousand organizations that do not do any program expenses. Those are useless to my analysis and are arguable organizations that should not be in this filing category nor receiving tax exempt status. 
+```{r}
+#Visualization
+org_data %>%
+  group_by(ORG_EIN) %>%
+  summarize(max_streak = {
+    runs <- rle(F9_09_EXP_TOT_PROG == 0)
+    if(any(runs$values)) max(runs$lengths[runs$values]) else 0
+  }) %>%
+  ggplot(aes(x = factor(max_streak))) +
+  geom_bar(fill = "brown") +
+  labs(title = "Distribution of Consecutive Zero-Expense Years",
+       x = "Longest Consecutive Streak of $0 Expenses",
+       y = "Number of Organizations") +
+  theme_minimal()
+```
+
+## Revenue
+```{r}
+#Data summary of revenue
+summary(org_data$F9_08_REV_TOT_TOT)
+```
+```{r}
+#Data summary of log(revenue)
+revenue = org_data$F9_08_REV_TOT_TOT
+log_revenue = log(revenue + 1)
+summary(log_revenue)
+```
+```{r}
+#Visualization of revenue and log(revenue). Thanks, AI.
+library(patchwork) # To put plots side-by-side
+
+# Plot A: Raw Revenue (likely heavily skewed)
+p1 <- ggplot(org_data, aes(x = revenue)) +
+  geom_histogram(fill = "steelblue", bins = 50) +
+  labs(title = "Raw Revenue", x = "Dollars ($)", y = "Count") +
+  theme_minimal()
+
+# Plot B: Log Revenue (likely more bell-shaped/normal)
+p2 <- ggplot(org_data, aes(x = log_revenue)) +
+  geom_histogram(fill = "darkorange", bins = 50) +
+  labs(title = "Log-Transformed Revenue", x = "Log Value", y = "Count") +
+  theme_minimal()
+
+# Combine them
+p1 + p2
+```
+
+```{r}
+org_data <- org_data %>% arrange(ORG_EIN, YEAR)
+
+# Step 2: Calculate the distribution of MAX consecutive zero-expense years
+consecutive_dist_rev <- org_data %>%
+  filter(YEAR <= 2020) %>% # I want to keep the Covid effect
+  group_by(ORG_EIN) %>%
+  summarize(max_consecutive_rev_zeros = {
+    runs <- rle(F9_08_REV_TOT_TOT == 0)
+    # Identify the maximum length where the value is TRUE (i.e., it was a zero)
+    if(any(runs$values)) max(runs$lengths[runs$values]) else 0
+  }) %>%
+  count(max_consecutive_rev_zeros)
+
+print(consecutive_dist_rev)
+```
+```{r}
+#Visualization
+org_data %>%
+  group_by(ORG_EIN) %>%
+  summarize(max_streak = {
+    runs <- rle(F9_08_REV_TOT_TOT == 0)
+    if(any(runs$values)) max(runs$lengths[runs$values]) else 0
+  }) %>%
+  ggplot(aes(x = factor(max_streak))) +
+  geom_bar(fill = "darkgreen") +
+  labs(title = "Distribution of Consecutive Zero-Revenue Years",
+       x = "Longest Consecutive Streak of $0 Revenues",
+       y = "Number of Organizations") +
+  theme_minimal()
+```
+
+
+## Expenses and Revenue Outliers
+```{r}
+org_data <- org_data %>% arrange(ORG_EIN, YEAR)
+# Step 2: Calculate the distribution of MAX consecutive zero-revenues years
+consecutive_dist <- org_data %>%
+  filter(YEAR <= 2020) %>% # I want to keep the Covid effect
+  group_by(ORG_EIN) %>%
+  summarize(max_consecutive_both_zeros = {
+    both_zero = (F9_08_REV_TOT_TOT == 0 & F9_09_EXP_TOT_PROG == 0)
+    runs <- rle(both_zero)
+    # Identify the maximum length where the value is TRUE (i.e., it was a zero)
+    if(any(runs$values)) max(runs$lengths[runs$values]) else 0
+  }) %>%
+  count(max_consecutive_both_zeros)
+
+print(consecutive_dist)
+```
+```{r}
+#Visualization
+org_data %>%
+  group_by(ORG_EIN) %>%
+  summarize(max_streak = {
+      both_zero = (F9_08_REV_TOT_TOT == 0 & F9_09_EXP_TOT_PROG == 0)
+    runs <- rle(both_zero)
+    if(any(runs$values)) max(runs$lengths[runs$values]) else 0
+  }) %>%
+  ggplot(aes(x = factor(max_streak))) +
+  geom_bar(fill = "blue") +
+  labs(title = "Distribution of Consecutive Zero-Expense & Zero-Revenue Years",
+       x = "Longest Consecutive Streak of $0 Values",
+       y = "Number of Organizations") +
+  theme_minimal()
 ```
 
