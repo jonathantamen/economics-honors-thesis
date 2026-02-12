@@ -23,12 +23,12 @@ bad_org_ids <- org_data %>% #Thanks, AI.
   arrange(ORG_EIN, YEAR) %>%
   group_by(ORG_EIN) %>%
   summarize(max_streak = {
-    both_zero = (F9_08_REV_TOT_TOT == 0 & F9_09_EXP_TOT_PROG == 0)
+    both_zero = (F9_08_REV_TOT_TOT == 0 & F9_09_EXP_TOT_PROG == 0) #organizations with zero expenses and zero revenues
     runs <- rle(both_zero)
     if(any(runs$values)) max(runs$lengths[runs$values]) else 0
   }) %>%
   filter(max_streak >= 3) %>%
-  pull(ORG_EIN)
+  pull(ORG_EIN) #got my list of organizations inactive for 3 or more years
 
 
 #Main filtering function
@@ -48,13 +48,13 @@ final_org_data = org_data %>%
     ) %>%
   #--------------------------------------------
   #Step 2: Dropping zero activity organizations
-  filter(!(organization_ein %in% bad_org_ids)) %>%
+  filter(!(organization_ein %in% bad_org_ids)) %>% #filters to organizations that are NOT organizations in bad_eins
   #----------------------------------
   #Step 3: Dropping hospitals/schools
   filter(org_type == "Neither")
 
 #---------------------
-#Step 3: Create Subsets
-
+#SAVING
+saveRDS(final_org_data, "../final_data/final_data_set")
 
 

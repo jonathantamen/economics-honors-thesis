@@ -1,0 +1,32 @@
+---
+title: "3d Industry Subset Regressions"
+author: "Jonathan"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Regression
+
+Now, I want to compare the effect in each industry. So, I will create a subset of the data for each industry and then rerun the same, simple, controlled regression as when I did nation-wide.
+
+```{r}
+#Setup code
+library(dplyr)
+regression4_variables = data_set %>%
+  select(total_program_expenses, gdp_change_percent, year, state, 
+         industry
+         ) %>%
+  mutate(
+    log_program_expenses = log(total_program_expenses + 1)
+  )
+#Regression code
+model4 = feols(log_program_expenses ~ gdp_change_percent + i(industry) | year + state, data = regression2_variables)
+
+#Output code
+summary(model4)
+```
+

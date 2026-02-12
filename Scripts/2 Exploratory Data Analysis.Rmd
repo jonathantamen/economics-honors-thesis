@@ -275,7 +275,7 @@ print(consecutive_dist)
 org_data %>%
   group_by(ORG_EIN) %>%
   summarize(max_streak = {
-      both_zero = (F9_08_REV_TOT_TOT == 0 & F9_09_EXP_TOT_PROG == 0)
+    both_zero = (F9_08_REV_TOT_TOT == 0 & F9_09_EXP_TOT_PROG == 0)
     runs <- rle(both_zero)
     if(any(runs$values)) max(runs$lengths[runs$values]) else 0
   }) %>%

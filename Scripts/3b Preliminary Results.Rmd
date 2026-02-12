@@ -12,147 +12,86 @@ knitr::opts_chunk$set(echo = TRUE)
 # Imports
 
 ```{r}
-org_data = readRDS("../Final_Data/clean_master_data.rds")
+data_set = readRDS("../Final_Data/final_data_set.rds")
 
 #Packages
 library(dplyr)
 library(fixest)
 ```
 
-## Regression 0.1
+## Regression 1
 
 The first regression will be as simple as possible to find any sort of correlation.
 
-Log(Program Expenses) on GDP Change %.
+Log(Program Expenses) on GDP Change %. With macro fixed effects (state, year)
 
 ```{r}
 #Setup code
 library(dplyr)
 
-regression_variables = org_data %>%
-  select(F9_09_EXP_TOT_PROG, gdp_change_percent) %>%
-  
-  rename( #renaming to match all conventions and make them easier to understand
-    total_program_expenses = F9_09_EXP_TOT_PROG
-  ) %>%
-  
+regression1_variables = data_set %>%
+  select(total_program_expenses, gdp_change_percent, year, state
+         ) %>%
   mutate(
     log_program_expenses = log(total_program_expenses + 1)
   )
-```
 
-```{r}
 #Regression code
-model1 = feols(log_program_expenses ~ gdp_change_percent, data = regression_variables)
-```
+model1 = feols(log_program_expenses ~ gdp_change_percent | year + state, data = regression1_variables)
 
-```{r}
 #Output code
 summary(model1)
 ```
+This regression tells me that for every 1 unit change in real GDP (1% increase), is correlated with a 0.7% decrease in total program expenses. This result is statistically significant.
 
-This regression tells me that for every 1 unit change in real GDP (1% increase), is correlated with a 5.3% decrease in total program expenses. This result is statistically significant.
+## Regression 2
 
-## Regression 0.2
-
-Now, I want to add a variable for each year of data, to control time-variant factors.
-
+Now, I want to add a variable for each industry of non-profits, to add industry fixed effects.
 ```{r}
 #Setup code
-regression_variables = org_data %>%
-  select(F9_09_EXP_TOT_PROG, gdp_change_percent, YEAR) %>%
-  
-  rename( #renaming to match all conventions and make them easier to understand
-    total_program_expenses = F9_09_EXP_TOT_PROG,
-    year = YEAR #new
-  ) %>%
-  
+library(dplyr)
+regression2_variables = data_set %>%
+  select(total_program_expenses, gdp_change_percent, year, state, 
+         industry #new
+         ) %>%
   mutate(
     log_program_expenses = log(total_program_expenses + 1)
   )
-```
-
-```{r}
 #Regression code
-model2 = feols(log_program_expenses ~ gdp_change_percent | year, data = regression_variables)
-```
+model2 = feols(log_program_expenses ~ gdp_change_percent | year + state + industry, data = regression2_variables)
 
-```{r}
 #Output code
 summary(model2)
 ```
 
-This regression tells me that for every 1 unit (1% increase) in real GDP, total program expenses decrease by about 4.2%. This result is statistically significant.
+This regression tells me that for every 1 unit (1% increase) in real GDP, total program expenses decrease by about 0.5%. This result is not statistically significant though.
 
-## Regression 0.3
+## Regression 3
 
-Now, I want to include state-fixed effects to improve my model.
+Now, I want to include organization fixed effects. Controlling for each individual non-profit and comparing to its own finances. 
 
 ```{r}
 #Setup code
-regression_variables = org_data %>%
-  select(F9_09_EXP_TOT_PROG, gdp_change_percent, YEAR, F9_00_ORG_ADDR_STATE) %>%
-  
-  rename( #renaming to match all conventions and make them easier to understand
-    total_program_expenses = F9_09_EXP_TOT_PROG,
-    year = YEAR,
-    state = F9_00_ORG_ADDR_STATE #new
-  ) %>%
-  
+library(dplyr)
+regression3_variables = data_set %>%
+  select(total_program_expenses, gdp_change_percent, year, state, industry,
+         organization_ein #new
+         ) %>%
   mutate(
     log_program_expenses = log(total_program_expenses + 1)
   )
-```
-
-```{r}
 #Regression code
-model3 = feols(log_program_expenses ~ gdp_change_percent | year + state, data = regression_variables)
-```
+model3 = feols(log_program_expenses ~ gdp_change_percent | year + state + industry + organization_ein, data = regression3_variables)
 
-```{r}
 #Output code
 summary(model3)
 ```
 
-This regression tells me that when controlling for states, the effect of state GDP is actually non existent, statistically. However, being in a different states does have a statistical effect on program expenses. Also, being in a different year does have a statistical effect on program expenses.
+This regression tells me that when controlling for each organization, a 1 unit increase (1% increase) in real GDP, is correlated with a 0.6% increase in program expenses. This result is statistically significant.
 
-## Regression 0.4
+In other words, there appears to a cyclical trend with GDP and program expenses. As the economy expands, so do non-profit activities. 
 
-Now, I want to add industry fixed effects to my regression by controlling for industries of non-profits.
-
-```{r}
-#Setup code
-regression_variables = org_data %>%
-  select(F9_09_EXP_TOT_PROG, gdp_change_percent, YEAR, F9_00_ORG_ADDR_STATE, activity_category) %>%
-  
-  rename( #renaming to match all conventions and make them easier to understand
-    total_program_expenses = F9_09_EXP_TOT_PROG,
-    year = YEAR,
-    state = F9_00_ORG_ADDR_STATE,
-    industry = activity_category #new
-  ) %>%
-  
-  mutate(
-    log_program_expenses = log(total_program_expenses + 1),
-    industry = toupper(trimws(industry)) #bug fix
-    )
-```
-
-```{r}
-#Regression code
-model4 = feols(log_program_expenses ~ gdp_change_percent | year + state + industry, data = regression_variables)
-```
-
-```{r}
-#Output code
-summary(model4)
-```
-
-This regression tells me that there is now a negative correlation again with state gdp, but it is not statistically significant. Also, being in certain industries has a statistically significant effect on program expenses.
-
-In other words,
-
-## Regression 0.5
+## Regression 4
 
 Next, I will hold total revenues of the organization as fixed, by controlling it as a variable in the regression, to eliminate any effect that changing budgets has on changing program expenses. By isolating this effect, I (presumably) am left with only how much changing program expenses depends on economic conditions, and not budget conditions anymore.
 
@@ -162,83 +101,42 @@ In other words, I am looking for B\<0, because this would convey that as economi
 
 ```{r}
 #Setup code
-regression_variables = org_data %>%
-  select(F9_09_EXP_TOT_PROG, gdp_change_percent, YEAR, F9_00_ORG_ADDR_STATE, activity_category, F9_08_REV_TOT_TOT) %>%
-  
-  rename( #renaming to match all conventions and make them easier to understand
-    total_program_expenses = F9_09_EXP_TOT_PROG,
-    year = YEAR,
-    state = F9_00_ORG_ADDR_STATE,
-    industry = activity_category,
-    total_revenue = F9_08_REV_TOT_TOT #new
-  ) %>%
-  
+library(dplyr)
+regression4_variables = data_set %>%
+  select(total_program_expenses, gdp_change_percent, year, state, industry,
+         total_revenue #new
+         ) %>%
   mutate(
     log_program_expenses = log(total_program_expenses + 1),
-    industry = toupper(trimws(industry)),
-    log_revenue = log(total_revenue + 1)
-    )
-```
-
-```{r}
+    log_revenue = log(total_revenue +1)
+  )
 #Regression code
-model5 = feols(log_program_expenses ~ gdp_change_percent + log_revenue | year + state + industry, data = regression_variables)
-```
+model4 = feols(log_program_expenses ~ gdp_change_percent + log_revenue | year + state + industry, data = regression5_variables)
 
-```{r}
 #Output code
-summary(model5)
+summary(model4)
 ```
-
-# Regression 1.0
-
-Finally, I want to control for each non-profit organization itself. To do this, I use a new regression package to compare each organization to itself.
-
-With this regression, I will be able to determine the direction or correlation, if any, that non-profits on average follow in response to changing economic conditions.
-
-```{r}
-#Setup code
-regression_variables = org_data %>%
-  select(F9_09_EXP_TOT_PROG, gdp_change_percent, YEAR, F9_00_ORG_ADDR_STATE, activity_category, F9_08_REV_TOT_TOT, ORG_EIN) %>%
-  
-  rename( #renaming to match all conventions and make them easier to understand
-    total_program_expenses = F9_09_EXP_TOT_PROG,
-    year = YEAR,
-    state = F9_00_ORG_ADDR_STATE,
-    industry = activity_category,
-    total_revenue = F9_08_REV_TOT_TOT,
-    organization_ein = ORG_EIN #new
-  ) %>%
-  
-  mutate(
-    log_program_expenses = log(total_program_expenses + 1),
-    industry = toupper(trimws(industry)),
-    log_revenue = log(total_revenue + 1)
-    )
-```
-
-```{r}
-#Regression code
-model6 = feols(log_program_expenses ~ gdp_change_percent + log_revenue | organization_ein + year + state + industry, data = regression_variables)
-```
-
-```{r}
-#Output code
-summary(model6)
-```
-
-This regression tells me that for every 1 unit (1%) increase in real GDP, program expenses actually increase by about 0.1%, though this result is not statistically significant. Additionally, for every 1 unit (1%) increase in revenues, program expenses increase by 0.84%, and this result is statistically significant.
+This regression tells me that for every 1 unit (1%) increase in real GDP, program expenses decrease by about 0.2%, though this result is not statistically significant. Additionally, for every 1 unit (1%) increase in revenues, program expenses increase by 0.84%, and this result is statistically significant.
 
 In other words, for non-profit organizations of any sector or state, revenues has a stronger correlation in changing program expenses than economic conditions. Further supporting this is the correlation with GDP change, indicating that as the economy expands, revenues for organizations increase, allowing for increased program expansion / expenses.
 
-# Next steps
+## Regression 5
+Now, I will try with a lag of GDP to see if last years economic conditions effect non-profit activities for this year.
 
-To improve this regression,
+```{r}
+#Setup code
+library(dplyr)
+regression5_variables = data_set %>%
+  select(total_program_expenses, gdp_change_percent, year, state, industry,
+         total_revenue #new
+         ) %>%
+  mutate(
+    log_program_expenses = log(total_program_expenses + 1),
+    log_revenue = log(total_revenue +1)
+  )
+#Regression code
+model5 = feols(log_program_expenses ~ lag(gdp_change_percent, 1) + log_revenue | year + state + industry, data = regression5_variables)
 
-1.  I want to exclude outliers. So, drop organizations that have multiple years of zero program expenses and organizations that are so large they even skew log(revenues) and may not need to respond at all the economic conditions.
-
-2.  I want to exclude multi-state non-profits. So, a subset of the the data which would be limited to only local non-profit organizations that do activities within their own state and would be more closely responding to the local conditions instead of the needs of the country or multiple states.
-
-3.  I want to try excluding non-profits that did not exist in the Covid-19 recession. So, a subset of the data which would be limited only to non-profits that responded (in any extent) to an economic recession.
-
-4.  Further, I want to try a subset of only organizations that expanded during Covid-19, to see if my variables interact with them differently. I may do this through a Boolean, interaction variable.
+#Output code
+summary(model5)
+```
