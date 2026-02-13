@@ -17,6 +17,8 @@ data_set = readRDS("../Final_Data/final_data_set.rds")
 #Packages
 library(dplyr)
 library(fixest)
+library(modelsummary)  # Best package for regression tables
+library(flextable)     # For Word tables
 ```
 
 ## Regression 1
@@ -37,7 +39,7 @@ regression1_variables = data_set %>%
   )
 
 #Regression code
-model1 = feols(log_program_expenses ~ gdp_change_percent | year + state, data = regression1_variables)
+macro_fixed_effects_model = feols(log_program_expenses ~ gdp_change_percent | year + state, data = regression1_variables)
 
 #Output code
 summary(model1)
@@ -60,7 +62,7 @@ regression2_variables = data_set %>%
     log_program_expenses = log(total_program_expenses + 1)
   )
 #Regression code
-model2 = feols(log_program_expenses ~ gdp_change_percent | year + state + industry, data = regression2_variables)
+industry_fixed_effects_model = feols(log_program_expenses ~ gdp_change_percent | year + state + industry, data = regression2_variables)
 
 #Output code
 summary(model2)
@@ -83,7 +85,7 @@ regression3_variables = data_set %>%
     log_program_expenses = log(total_program_expenses + 1)
   )
 #Regression code
-model3 = feols(log_program_expenses ~ gdp_change_percent | year + state + industry + organization_ein, data = regression3_variables)
+firm_fixed_effects_model = feols(log_program_expenses ~ gdp_change_percent | year + state + industry + organization_ein, data = regression3_variables)
 
 #Output code
 summary(model3)
@@ -113,7 +115,7 @@ regression4_variables = data_set %>%
     log_revenue = log(total_revenue +1)
   )
 #Regression code
-model4 = feols(log_program_expenses ~ gdp_change_percent + log_revenue | year + state + industry, data = regression4_variables)
+revenue_controlled_model = feols(log_program_expenses ~ gdp_change_percent + log_revenue | year + state + industry, data = regression4_variables)
 
 #Output code
 summary(model4)
@@ -122,3 +124,32 @@ summary(model4)
 This regression tells me that for every 1 unit (1%) increase in real GDP, program expenses decrease by about 0.2%, though this result is not statistically significant. Additionally, for every 1 unit (1%) increase in revenues, program expenses increase by 0.84%, and this result is statistically significant.
 
 In other words, for non-profit organizations of any sector or state, revenues has a stronger correlation in changing program expenses than economic conditions. Further supporting this is the correlation with GDP change, indicating that as the economy expands, revenues for organizations increase, allowing for increased program expansion / expenses.
+
+# Exporting
+```{r}
+model_list = list(
+  macro_fixed_effects_model,
+  industry_fixed_effects_model,
+  firm_fixed_effects_model,
+  revenue_controlled_model
+)
+comparison_table <- modelsummary(
+  model_list,
+  stars = TRUE,  # Add significance stars
+  gof_map = c("nobs", "r.squared", "adj.r.squared", "FE: year", "FE: state", "FE: industry", "FE: organization_ein"),
+  coef_rename = c(
+    "gdp_change_percent" = "GDP Change %",
+    "log_revenue" = "Log(Revenue)"
+  ),
+  title = "Regression Results: Effect of GDP on Program Expenses",
+  output = "flextable"  # Create flextable for Word
+) %>%
+  autofit() %>%
+  theme_vanilla() %>%
+  bold(part = "header")
+
+save_as_docx(comparison_table, path = "../Outputs/basic_regression_models_table.docx")
+cat("✓ Comparison table saved: all_regressions_table.docx\n")
+```
+
+

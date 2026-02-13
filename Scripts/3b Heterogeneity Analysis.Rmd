@@ -17,12 +17,14 @@ library(tidyverse)  # For data manipulation
 library(fixest)     # For fixed effects regression (feols function)
 library(knitr)      # For nice tables
 library(broom)      # For tidy regression output
+library(flextable)  # For Word-ready tables
 ```
 ```{r load-data}
 data = readRDS("../Final_Data/final_data_set.rds")
 ```
 
 # Industry Subset Heterogeneity Analysis
+## Regressions
 
 This section runs separate regressions for each industry to see if the relationship between GDP and program expenses differs across industries.
 
@@ -79,7 +81,7 @@ for (ind in industries) {
 cat("\nSuccessful regressions:", length(industry_results), "\n")
 ```
 
-# Display Results
+## Display Results
 ```{r display-results}
 # Create a summary table of coefficients for gdp_change_percent across industries
 summary_table <- data.frame(
@@ -158,38 +160,262 @@ if (nrow(summary_table) > 0) {
 }
 ```
 
-```{r summary-stats}
-# Print summary statistics about the results
-if (nrow(summary_table) > 0) {
-  cat("\n=== SUMMARY OF RESULTS ===\n")
-  cat("Total industries analyzed:", nrow(summary_table), "\n")
-  cat("Significant effects (p < 0.05):", sum(summary_table$P_Value < 0.05), "\n")
-  cat("Positive effects:", sum(summary_table$Coefficient > 0), "\n")
-  cat("Negative effects:", sum(summary_table$Coefficient < 0), "\n\n")
+## Exporting
+```{r}
+#Image 
+ggsave(
+  filename = "../Outputs/industry_coefficient_plot.png",
+  plot = last_plot(),
+  width = 10,
+  height = 8,
+  dpi = 300,  # High resolution for Word
+)
+cat("PNG image saved: industry_coefficient_plot.png\n")
+```
+```{r}
+#Data Table
+formatted_table <- summary_table %>%
+  mutate(
+    # Add stars for significance
+    Significance = case_when(
+      P_Value < 0.001 ~ "***",
+      P_Value < 0.01 ~ "**",
+      P_Value < 0.05 ~ "*",
+      TRUE ~ ""
+    )
+  ) %>%
+  select(Industry, Coefficient, Std_Error, P_Value, Significance, N_Obs) %>%
+  flextable() %>%
+  set_header_labels(
+    Industry = "Industry",
+    Coefficient = "Coefficient",
+    Std_Error = "Std. Error",
+    P_Value = "P-Value",
+    Significance = "Sig.",
+    N_Obs = "N"
+  ) %>%
+  colformat_double(j = c("Coefficient", "Std_Error", "P_Value"), digits = 4) %>%
+  autofit() %>%
+  theme_vanilla() %>%
+save_as_docx(formatted_table, path = "../Outputs/industry_results_table.docx")
+cat("Word table saved: industry_results_table.docx\n")
+```
+
+# Organization Size Heterogeinety Test
+```{r}
+revenue_data <- data_set %>%
+  mutate(
+    # Calculate quintiles based on total_revenue
+    revenue_quintile = ntile(total_revenue, 5),
+    
+    # Create descriptive labels for each quintile
+    revenue_group = case_when(
+      revenue_quintile == 1 ~ "Q1 (Smallest)",
+      revenue_quintile == 2 ~ "Q2 (Small)",
+      revenue_quintile == 3 ~ "Q3 (Medium)",
+      revenue_quintile == 4 ~ "Q4 (Large)",
+      revenue_quintile == 5 ~ "Q5 (Largest)",
+      TRUE ~ NA_character_
+    )
+  )
+```
+
+```{r}
+# Check the revenue ranges for each quintile
+cat("Revenue Quintile Ranges:\n")
+revenue_data %>%
+  group_by(revenue_group) %>%
+  summarise(
+    Min = min(total_revenue, na.rm = TRUE),
+    Max = max(total_revenue, na.rm = TRUE),
+    Median = median(total_revenue, na.rm = TRUE),
+    N = n()
+  ) %>%
+  print()
+```
+## Regressions
+```{r}
+# Get list of quintiles
+quintiles <- unique(revenue_data$revenue_quintile)
+quintiles <- quintiles[!is.na(quintiles)]  # Remove NAs
+quintiles <- sort(quintiles)  # Order from 1 to 5
+
+# Create empty list to store results
+quintile_results <- list()
+
+# Loop through each quintile
+for (q in quintiles) {
   
-  # Show industries with strongest positive and negative effects
-  cat("Strongest POSITIVE effect:\n")
-  print(summary_table %>% 
-          arrange(desc(Coefficient)) %>% 
-          head(3) %>% 
-          select(Industry, Coefficient, P_Value))
+  cat("\nProcessing quintile:", q, "\n")
   
-  cat("\nStrongest NEGATIVE effect:\n")
-  print(summary_table %>% 
-          arrange(Coefficient) %>% 
-          head(3) %>% 
-          select(Industry, Coefficient, P_Value))
+  # Filter data for this quintile
+  quintile_data <- revenue_data %>%
+    filter(revenue_quintile == q) %>%
+    mutate(
+      log_program_expenses = log(total_program_expenses + 1),
+      log_revenue = log(total_revenue + 1)
+    )
+  
+  cat("  Observations:", nrow(quintile_data), "\n")
+  
+  # Check if we have enough data
+  if (nrow(quintile_data) < 10) {
+    cat("  Skipping - not enough observations\n")
+    next
+  }
+  
+  # Run regression with error handling
+  model <- tryCatch({
+    feols(
+      log_program_expenses ~ gdp_change_percent + log_revenue | year + state,
+      data = quintile_data
+    )
+  }, error = function(e) {
+    cat("  Error:", e$message, "\n")
+    return(NULL)
+  })
+  
+  # Store results if successful
+  if (!is.null(model)) {
+    # Use descriptive label as name
+    quintile_label <- unique(quintile_data$revenue_group)[1]
+    quintile_results[[quintile_label]] <- model
+    cat("  Success - model stored\n")
+  }
+}
+
+cat("\nSuccessful regressions:", length(quintile_results), "\n")
+```
+## Display Results
+
+```{r display-quintile-results}
+# Create summary table
+quintile_summary <- data.frame(
+  Quintile = character(),
+  Coefficient = numeric(),
+  Std_Error = numeric(),
+  P_Value = numeric(),
+  N_Obs = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# Extract coefficients
+for (q_name in names(quintile_results)) {
+  model <- quintile_results[[q_name]]
+  
+  if (is.null(model)) next
+  
+  coef_summary <- summary(model)$coeftable
+  
+  if ("gdp_change_percent" %in% rownames(coef_summary)) {
+    quintile_summary <- rbind(quintile_summary, data.frame(
+      Quintile = q_name,
+      Coefficient = coef_summary["gdp_change_percent", "Estimate"],
+      Std_Error = coef_summary["gdp_change_percent", "Std. Error"],
+      P_Value = coef_summary["gdp_change_percent", "Pr(>|t|)"],
+      N_Obs = model$nobs
+    ))
+  }
+}
+
+# Display table
+kable(quintile_summary,
+      digits = 4,
+      caption = "GDP Effect by Organization Revenue Size (Quintiles)")
+```
+
+```{r visualize-quintile-results, fig.width=8, fig.height=6}
+# Create visualization if we have results
+if (nrow(quintile_summary) > 0) {
+  
+  # Add confidence intervals
+  quintile_summary <- quintile_summary %>%
+    mutate(
+      CI_lower = Coefficient - 1.96 * Std_Error,
+      CI_upper = Coefficient + 1.96 * Std_Error,
+      Significant = ifelse(P_Value < 0.05, "Yes", "No"),
+      # Ensure proper ordering
+      Quintile = factor(Quintile, levels = c(
+        "Q1 (Smallest)", "Q2 (Small)", "Q3 (Medium)", 
+        "Q4 (Large)", "Q5 (Largest)"
+      ))
+    )
+  
+  # Create plot
+  ggplot(quintile_summary, aes(x = Quintile, y = Coefficient)) +
+    geom_point(aes(color = Significant), size = 4) +
+    geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper, color = Significant),
+                  width = 0.2, linewidth = 1) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 11),
+      plot.title = element_text(size = 14, face = "bold"),
+      plot.subtitle = element_text(size = 11)
+    ) +
+    labs(
+      title = "GDP Effect on Program Expenses by Organization Size",
+      subtitle = "Measured by Revenue Quintiles (95% Confidence Intervals)",
+      x = "Revenue Quintile",
+      y = "Coefficient (Effect on Log Program Expenses)",
+      color = "Significant at 5%"
+    ) +
+    scale_color_manual(values = c("No" = "gray60", "Yes" = "steelblue"))
+  
+} else {
+  cat("No results to plot\n")
 }
 ```
 
-# Next Steps?
-1. Make samples all the same from the beginning. Else you don't know if the results are from changing sample or changing model. I.e. removing outliers all at the beginning. 
-2. Redo outliers elimination by double checking distribution after each test. i.e. remove 1% top, or 2% or 5%. 
-3. Look into entry/exit of organizations. 
-4. Redo outliers elimination of organizations with zero expenses. First check distribution of organizations and occurrences of zero program expenses. i.e. just one year, can probably keep, but all years then probably remove. 
-5. Double check fixed effects code with feols functions. Rerun the regression for each industry. Fixed effect beta is an average. So individual industry is specific. 6. Double check fixed effects based on size of organization. Rerun the regression for each quintile size of organizations. So top, middle, bottom, regressions beta. 
-7. Do interaction term of before/after Covid to see if something changed in response to Covid in how organizations respond to changing GDP. 
-8. Try again with GDP per capita in place of real GDP, of each state. 
-9. Don't need to include company/ein fixed effects in all models. Just try without first. 
+## Exporting
 
+```{r}
+#Revenue Results image
+ggsave(
+  filename = "../Outputs/revenue_quintile_plot.png",
+  plot = last_plot(),
+  width = 8,
+  height = 6,
+  dpi = 300,
+  bg = "white"
+)
+cat("✓ PNG saved: revenue_quintile_plot.png\n")
+```
+
+```{r}
+#Revenue Results data table
+formatted_quintile_table <- quintile_summary %>%
+  mutate(
+    # Add significance stars
+    Significance = case_when(
+      P_Value < 0.001 ~ "***",
+      P_Value < 0.01 ~ "**",
+      P_Value < 0.05 ~ "*",
+      TRUE ~ ""
+    ),
+    # Add confidence intervals
+    CI_lower = Coefficient - 1.96 * Std_Error,
+    CI_upper = Coefficient + 1.96 * Std_Error,
+    CI_95 = paste0("[", round(CI_lower, 4), ", ", round(CI_upper, 4), "]")
+  ) %>%
+  select(Quintile, Coefficient, Std_Error, CI_95, P_Value, Significance, N_Obs) %>%
+  flextable() %>%
+  set_header_labels(
+    Quintile = "Revenue Quintile",
+    Coefficient = "Coefficient",
+    Std_Error = "Std. Error",
+    CI_95 = "95% CI",
+    P_Value = "P-Value",
+    Significance = "Sig.",
+    N_Obs = "N"
+  ) %>%
+  colformat_double(j = c("Coefficient", "Std_Error", "P_Value"), digits = 4) %>%
+  autofit() %>%
+  theme_vanilla() %>%
+  bold(part = "header")
+
+# Save table as Word document
+save_as_docx(formatted_quintile_table, path = "../Outputs/revenue_quintile_table.docx")
+cat("✓ Word table saved: revenue_quintile_table.docx\n")
+```
 
