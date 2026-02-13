@@ -28,3 +28,13 @@ This section outlines how to import the Form 990 data for types of non-profits (
 # Project Data Dictionary
 
 Format: A data frame with 5 million observations across
+
+# Next Steps?
+1. Make samples all the same from the beginning. Else you don't know if the results are from changing sample or changing model. I.e. removing outliers all at the beginning. 
+2. Redo outliers elimination by double-checking distribution after each test. i.e. remove 1% top, or 2% or 5%. 
+3. Look into entry/exit of organizations. 
+4. Redo outliers elimination of organizations with zero expenses. First check distribution of organizations and occurrences of zero program expenses. i.e. just one year, can probably keep, but all years then probably remove. 
+5. Double check fixed effects code with feols functions. Rerun the regression for each industry. Fixed effect beta is an average. So individual industry is specific. 6. Double check fixed effects based on size of organization. Rerun the regression for each quintile size of organizations. So top, middle, bottom, regressions beta. 
+7. Do interaction term of before/after Covid to see if something changed in response to Covid in how organizations respond to changing GDP. 
+8. Try again with GDP per capita in place of real GDP, of each state. 
+9. Don't need to include company/ein fixed effects in all models. Just try without first. 
