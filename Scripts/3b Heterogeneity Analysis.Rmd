@@ -1,0 +1,195 @@
+---
+title: "3c Iterative Regressions"
+author: "Jonathan"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Imports
+
+```{r load-packages, message=FALSE, warning=FALSE}
+# Load required packages
+library(tidyverse)  # For data manipulation
+library(fixest)     # For fixed effects regression (feols function)
+library(knitr)      # For nice tables
+library(broom)      # For tidy regression output
+```
+```{r load-data}
+data = readRDS("../Final_Data/final_data_set.rds")
+```
+
+# Industry Subset Heterogeneity Analysis
+
+This section runs separate regressions for each industry to see if the relationship between GDP and program expenses differs across industries.
+
+```{r industry-heterogeneity}
+# Get list of unique industries in your data (remove NAs)
+industries <- unique(data$industry)
+industries <- industries[!is.na(industries)]  # Remove NA values
+
+# Print how many industries we have
+cat("Number of industries:", length(industries), "\n")
+
+# Create an empty list to store regression results
+industry_results <- list()
+
+# Loop through each industry and run a regression
+for (ind in industries) {
+  
+  # Print which industry we're working on (helps with debugging)
+  cat("Processing industry:", ind, "\n")
+  
+  # Filter data for this specific industry
+  industry_data <- data %>% 
+    filter(industry == ind) %>%
+    mutate(
+      log_program_expenses = log(total_program_expenses + 1),
+      log_revenue = log(total_revenue + 1)
+    )
+  
+  # Check if we have enough data for this industry
+  if (nrow(industry_data) < 10) {
+    cat("  Skipping - not enough observations (n =", nrow(industry_data), ")\n")
+    next  # Skip to next industry
+  }
+  
+  # Try to run the regression (with error handling)
+  model <- tryCatch({
+    feols(
+      log_program_expenses ~ gdp_change_percent + log_revenue | year + state,
+      data = industry_data
+    )
+  }, error = function(e) {
+    cat("  Error for industry", ind, ":", e$message, "\n")
+    return(NULL)  # Return NULL if regression fails
+  })
+  
+  # Only store if model ran successfully
+  if (!is.null(model)) {
+    industry_results[[ind]] <- model
+    cat("  Success - model stored\n")
+  }
+}
+
+# Print how many successful regressions we got
+cat("\nSuccessful regressions:", length(industry_results), "\n")
+```
+
+# Display Results
+```{r display-results}
+# Create a summary table of coefficients for gdp_change_percent across industries
+summary_table <- data.frame(
+  Industry = character(),
+  Coefficient = numeric(),
+  Std_Error = numeric(),
+  P_Value = numeric(),
+  N_Obs = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# Extract key statistics from each regression
+for (ind in names(industry_results)) {
+  model <- industry_results[[ind]]
+  
+  # Skip if model is NULL
+  if (is.null(model)) next
+  
+  # Get coefficient table
+  coef_summary <- summary(model)$coeftable
+  
+  # Check if gdp_change_percent is in the model
+  if ("gdp_change_percent" %in% rownames(coef_summary)) {
+    summary_table <- rbind(summary_table, data.frame(
+      Industry = ind,
+      Coefficient = coef_summary["gdp_change_percent", "Estimate"],
+      Std_Error = coef_summary["gdp_change_percent", "Std. Error"],
+      P_Value = coef_summary["gdp_change_percent", "Pr(>|t|)"],
+      N_Obs = model$nobs
+    ))
+  }
+}
+
+# Display the table
+kable(summary_table, 
+      digits = 4,
+      caption = "GDP Change Percent Coefficient by Industry")
+```
+
+```{r visualize-heterogeneity, fig.width=10, fig.height=8}
+# Only create plot if we have results
+if (nrow(summary_table) > 0) {
+  
+  # Create confidence intervals and significance indicator
+  summary_table <- summary_table %>%
+    mutate(
+      CI_lower = Coefficient - 1.96 * Std_Error,
+      CI_upper = Coefficient + 1.96 * Std_Error,
+      Significant = ifelse(P_Value < 0.05, "Yes", "No")
+    )
+  
+  # Create coefficient plot
+  ggplot(summary_table, aes(x = reorder(Industry, Coefficient), y = Coefficient)) +
+    geom_point(aes(color = Significant), size = 3) +
+    geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper, color = Significant), 
+                  width = 0.3) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+    coord_flip() +
+    theme_minimal() +
+    theme(
+      axis.text.y = element_text(size = 10),
+      plot.title = element_text(size = 14, face = "bold"),
+      plot.subtitle = element_text(size = 11)
+    ) +
+    labs(
+      title = "Effect of GDP Change on Program Expenses by Industry",
+      subtitle = "With 95% Confidence Intervals",
+      x = "Industry",
+      y = "Coefficient (Effect on Log Program Expenses)",
+      color = "Significant at 5%"
+    ) +
+    scale_color_manual(values = c("No" = "gray60", "Yes" = "steelblue"))
+  
+} else {
+  cat("No results to plot - check if regressions ran successfully\n")
+}
+```
+
+```{r summary-stats}
+# Print summary statistics about the results
+if (nrow(summary_table) > 0) {
+  cat("\n=== SUMMARY OF RESULTS ===\n")
+  cat("Total industries analyzed:", nrow(summary_table), "\n")
+  cat("Significant effects (p < 0.05):", sum(summary_table$P_Value < 0.05), "\n")
+  cat("Positive effects:", sum(summary_table$Coefficient > 0), "\n")
+  cat("Negative effects:", sum(summary_table$Coefficient < 0), "\n\n")
+  
+  # Show industries with strongest positive and negative effects
+  cat("Strongest POSITIVE effect:\n")
+  print(summary_table %>% 
+          arrange(desc(Coefficient)) %>% 
+          head(3) %>% 
+          select(Industry, Coefficient, P_Value))
+  
+  cat("\nStrongest NEGATIVE effect:\n")
+  print(summary_table %>% 
+          arrange(Coefficient) %>% 
+          head(3) %>% 
+          select(Industry, Coefficient, P_Value))
+}
+```
+
+# Next Steps?
+1. Make samples all the same from the beginning. Else you don't know if the results are from changing sample or changing model. I.e. removing outliers all at the beginning. 
+2. Redo outliers elimination by double checking distribution after each test. i.e. remove 1% top, or 2% or 5%. 
+3. Look into entry/exit of organizations. 
+4. Redo outliers elimination of organizations with zero expenses. First check distribution of organizations and occurrences of zero program expenses. i.e. just one year, can probably keep, but all years then probably remove. 
+5. Double check fixed effects code with feols functions. Rerun the regression for each industry. Fixed effect beta is an average. So individual industry is specific. 6. Double check fixed effects based on size of organization. Rerun the regression for each quintile size of organizations. So top, middle, bottom, regressions beta. 
+7. Do interaction term of before/after Covid to see if something changed in response to Covid in how organizations respond to changing GDP. 
+8. Try again with GDP per capita in place of real GDP, of each state. 
+9. Don't need to include company/ein fixed effects in all models. Just try without first. 
+
+

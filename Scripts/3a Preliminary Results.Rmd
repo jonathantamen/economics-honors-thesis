@@ -42,11 +42,13 @@ model1 = feols(log_program_expenses ~ gdp_change_percent | year + state, data = 
 #Output code
 summary(model1)
 ```
+
 This regression tells me that for every 1 unit change in real GDP (1% increase), is correlated with a 0.7% decrease in total program expenses. This result is statistically significant.
 
 ## Regression 2
 
 Now, I want to add a variable for each industry of non-profits, to add industry fixed effects.
+
 ```{r}
 #Setup code
 library(dplyr)
@@ -68,7 +70,7 @@ This regression tells me that for every 1 unit (1% increase) in real GDP, total 
 
 ## Regression 3
 
-Now, I want to include organization fixed effects. Controlling for each individual non-profit and comparing to its own finances. 
+Now, I want to include organization fixed effects. Controlling for each individual non-profit and comparing to its own finances.
 
 ```{r}
 #Setup code
@@ -89,7 +91,7 @@ summary(model3)
 
 This regression tells me that when controlling for each organization, a 1 unit increase (1% increase) in real GDP, is correlated with a 0.6% increase in program expenses. This result is statistically significant.
 
-In other words, there appears to a cyclical trend with GDP and program expenses. As the economy expands, so do non-profit activities. 
+In other words, there appears to a cyclical trend with GDP and program expenses. As the economy expands, so do non-profit activities.
 
 ## Regression 4
 
@@ -111,32 +113,12 @@ regression4_variables = data_set %>%
     log_revenue = log(total_revenue +1)
   )
 #Regression code
-model4 = feols(log_program_expenses ~ gdp_change_percent + log_revenue | year + state + industry, data = regression5_variables)
+model4 = feols(log_program_expenses ~ gdp_change_percent + log_revenue | year + state + industry, data = regression4_variables)
 
 #Output code
 summary(model4)
 ```
+
 This regression tells me that for every 1 unit (1%) increase in real GDP, program expenses decrease by about 0.2%, though this result is not statistically significant. Additionally, for every 1 unit (1%) increase in revenues, program expenses increase by 0.84%, and this result is statistically significant.
 
 In other words, for non-profit organizations of any sector or state, revenues has a stronger correlation in changing program expenses than economic conditions. Further supporting this is the correlation with GDP change, indicating that as the economy expands, revenues for organizations increase, allowing for increased program expansion / expenses.
-
-## Regression 5
-Now, I will try with a lag of GDP to see if last years economic conditions effect non-profit activities for this year.
-
-```{r}
-#Setup code
-library(dplyr)
-regression5_variables = data_set %>%
-  select(total_program_expenses, gdp_change_percent, year, state, industry,
-         total_revenue #new
-         ) %>%
-  mutate(
-    log_program_expenses = log(total_program_expenses + 1),
-    log_revenue = log(total_revenue +1)
-  )
-#Regression code
-model5 = feols(log_program_expenses ~ lag(gdp_change_percent, 1) + log_revenue | year + state + industry, data = regression5_variables)
-
-#Output code
-summary(model5)
-```
