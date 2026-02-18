@@ -19,11 +19,13 @@ library(knitr) # For nice tables
 library(broom) # For tidy regression output
 library(flextable) # For Word-ready tables
 ```
+
 ```{r load-data}
 data <- readRDS("../Final_Data/final_data_set.rds")
 ```
 
 # Industry Subset Heterogeneity Analysis
+
 ## Regressions
 
 This section runs separate regressions for each industry to see if the relationship between GDP and program expenses differs across industries.
@@ -84,6 +86,7 @@ cat("\nSuccessful regressions:", length(industry_results), "\n")
 ```
 
 ## Display Results
+
 ```{r display-results}
 # Create a summary table of coefficients for gdp_change_percent across industries
 summary_table <- data.frame(
@@ -129,14 +132,9 @@ kable(summary_table,
 )
 ```
 
-**Interpretation:**
-The table above sorts industries by their sensitivity to GDP changes. A **positive coefficient** indicates that program expenses increase when GDP increases (pro-cyclical), while a **negative coefficient** indicates they decrease (counter-cyclical). 
+**Interpretation:** The table above sorts industries by their sensitivity to GDP changes. A **positive coefficient** indicates that program expenses increase when GDP increases (pro-cyclical), while a **negative coefficient** indicates they decrease (counter-cyclical).
 
-From the results, most industries do **not** show a statistically significant relationship with GDP changes at the 5% level. 
-- **Mutual & Membership Benefit** organizations show a significant *negative* correlation (-2.30%, $p < 0.05$), suggesting their expenses consistently move opposite to the economy.
-- **Public Safety** also shows a marginally significant negative trend (-1.14%, $p \approx 0.05$).
-- **Science & Technology** has the highest positive coefficient (+1.98%), but it is not statistically significant due to high variability ($p = 0.26$).
-
+From the results, most industries do **not** show a statistically significant relationship with GDP changes at the 5% level. - **Mutual & Membership Benefit** organizations show a significant *negative* correlation (-2.30%, $p < 0.05$), suggesting their expenses consistently move opposite to the economy. - **Public Safety** also shows a marginally significant negative trend (-1.14%, $p \approx 0.05$). - **Science & Technology** has the highest positive coefficient (+1.98%), but it is not statistically significant due to high variability ($p = 0.26$).
 
 ```{r visualize-heterogeneity, fig.width=10, fig.height=8}
 # Only create plot if we have results
@@ -224,6 +222,7 @@ cat("Word table saved: industry_results_table.docx\n")
 ```
 
 # Organization Size Heterogeinety Test
+
 ```{r}
 revenue_data <- data %>%
   mutate(
@@ -255,7 +254,9 @@ revenue_data %>%
   ) %>%
   print()
 ```
+
 ## Regressions
+
 ```{r}
 # Get list of quintiles
 quintiles <- unique(revenue_data$revenue_quintile)
@@ -310,6 +311,7 @@ for (q in quintiles) {
 
 cat("\nSuccessful regressions:", length(quintile_results), "\n")
 ```
+
 ## Display Results
 
 ```{r display-quintile-results}
@@ -349,12 +351,7 @@ kable(quintile_summary,
 )
 ```
 
-**Interpretation:**
-This table tests if the size of the organization (measured by revenue) determines how much their expenses fluctate with the economy.
-- The results indicate **no statistically significant relationship** for any specific size group at the 5% confidence level. 
-- **Large organizations (Q4)** show a marginally significant negative correlation (-0.72%, $p = 0.08$), but the largest (Q5) and smallest (Q1) organizations show virtually no correlation ($p > 0.50$).
-- This suggests that, in general, **organization size alone does not strongly predict** how an organization's program expenses will respond to short-term GDP fluctuations in this model.
-
+**Interpretation:** This table tests if the size of the organization (measured by revenue) determines how much their expenses fluctate with the economy. - The results indicate **no statistically significant relationship** for any specific size group at the 5% confidence level. - **Large organizations (Q4)** show a marginally significant negative correlation (-0.72%, $p = 0.08$), but the largest (Q5) and smallest (Q1) organizations show virtually no correlation ($p > 0.50$). - This suggests that, in general, **organization size alone does not strongly predict** how an organization's program expenses will respond to short-term GDP fluctuations in this model.
 
 ```{r visualize-quintile-results, fig.width=8, fig.height=6}
 # Create visualization if we have results
@@ -451,4 +448,3 @@ cat("Word table saved: revenue_quintile_table.docx\n")
 
 print(formatted_quintile_table)
 ```
-

@@ -92,3 +92,36 @@ print(comparison_table)
 
 # Export to Word (Optional)
 save_as_docx(comparison_table, path = "../Outputs/explanatory_variables_experiment.docx")
+
+# 6. Organization Fixed Effects Experiment
+model_list_org_fe <- list()
+
+for (var in dependent_vars) {
+    # Create formula: var ~ gdp_change_percent | Fixed Effects + Organization
+    fml <- as.formula(paste(var, "~ gdp_change_percent | year + state + industry + organization_ein"))
+
+    # Run regression
+    model <- feols(fml, data = regression_data)
+
+    # Store with a nice name
+    model_name <- var_titles[var]
+    model_list_org_fe[[model_name]] <- model
+}
+
+# 7. Output Results (Organization FE)
+
+comparison_table_org_fe <- modelsummary(
+    model_list_org_fe,
+    stars = TRUE,
+    gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: industry", "FE: organization_ein"),
+    coef_rename = c("gdp_change_percent" = "GDP Change %"),
+    title = "Cyclicality of Non-Profit Revenue Sources (Organization FE)",
+    output = "flextable",
+    font = "Times New Roman"
+) %>%
+    autofit() %>%
+    theme_vanilla() %>%
+    bold(part = "header")
+
+print(comparison_table_org_fe)
+save_as_docx(comparison_table_org_fe, path = "../Outputs/explanatory_variables_experiment_org_fe.docx")
