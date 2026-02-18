@@ -19,7 +19,8 @@ library(modelsummary)
 library(flextable)
 
 # Load data
-data_set <- readRDS("../Final_Data/final_data_set.rds")
+# Pro-tip: use getwd() to verify your working directory
+data_set <- readRDS("Final_Data/final_data_set.rds")
 ```
 
 # Data Preparation
@@ -51,7 +52,7 @@ regression_data <- data_set %>%
     # Log transformations
     log_program_expenses = log(total_program_expenses + 1),
     log_revenue = log(total_revenue + 1),
-    
+
     # Post-Covid Dummy (Year >= 2020)
     post_covid = ifelse(year >= 2020, 1, 0)
   )
@@ -101,9 +102,9 @@ Including both interaction terms in the same model.
 
 ```{r}
 model_combined <- feols(
-  log_program_expenses ~ gdp_change_percent * post_covid + 
-                         gdp_change_percent * expanded_during_covid + 
-                         log_revenue | year + state + industry,
+  log_program_expenses ~ gdp_change_percent * post_covid +
+    gdp_change_percent * expanded_during_covid +
+    log_revenue | year + state + industry,
   data = regression_data
 )
 
@@ -142,6 +143,6 @@ interaction_table <- modelsummary(
   bold(part = "header")
 
 # Save to Word
-save_as_docx(interaction_table, path = "../Outputs/covid_interaction_regressions.docx")
-cat("✓ Table saved to ../Outputs/covid_interaction_regressions.docx\n")
+save_as_docx(interaction_table, path = "Outputs/covid_interaction_regressions.docx")
+cat("✓ Table saved to Outputs/covid_interaction_regressions.docx\n")
 ```
