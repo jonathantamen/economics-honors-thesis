@@ -1,5 +1,147 @@
 ---
-title: "3e Covid Ineraction Regressions"
-output: html_document
+title: "3e Covid Interaction Regressions"
+author: "Jonathan"
+date: "`r Sys.Date()`"
+output: pdf_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Imports
+
+```{r, message=FALSE, warning=FALSE}
+# Load libraries
+library(tidyverse)
+library(fixest)
+library(modelsummary)
+library(flextable)
+
+# Load data
+data_set <- readRDS("../Final_Data/final_data_set.rds")
+```
+
+# Data Preparation
+
+We need to create specific interaction variables:
+1. **Post-Covid Indicator**: A dummy variable for years 2020 and later.
+2. **Expanded During Covid**: An indicator for organizations that increased their revenue in 2020 compared to 2019.
+
+```{r}
+# 1. Identify organizations that expanded during Covid (2019 vs 2020)
+org_expansion <- data_set %>%
+  filter(year %in% c(2019, 2020)) %>%
+  select(organization_ein, year, total_revenue) %>%
+  # Handle duplicates if any (summing revenue for the year just in case)
+  group_by(organization_ein, year) %>%
+  summarise(total_revenue = sum(total_revenue, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(names_from = year, values_from = total_revenue, names_prefix = "rev_") %>%
+  # Create the expansion dummy: 1 if 2020 revenue > 2019 revenue
+  mutate(expanded_during_covid = ifelse(rev_2020 > rev_2019, 1, 0)) %>%
+  select(organization_ein, expanded_during_covid) %>%
+  # Remove NAs (orgs that didn't exist in both years)
+  filter(!is.na(expanded_during_covid))
+
+# 2. Merge back and create variables for regression
+regression_data <- data_set %>%
+  # Join the expansion info (left join keeps all orgs, but non-matching ones get NA for expansion)
+  left_join(org_expansion, by = "organization_ein") %>%
+  mutate(
+    # Log transformations
+    log_program_expenses = log(total_program_expenses + 1),
+    log_revenue = log(total_revenue + 1),
+    
+    # Post-Covid Dummy (Year >= 2020)
+    post_covid = ifelse(year >= 2020, 1, 0)
+  )
+
+# Check how many organizations we successfully labeled
+cat("Number of organizations with expansion data:", sum(!is.na(regression_data$expanded_during_covid)), "\n")
+```
+
+# Regressions
+
+The base model requested is:
+`feols(log_program_expenses ~ gdp_change_percent + log_revenue | year + state + industry)`
+
+We will add interactions to this base.
+
+## Model 1: Interaction with Covid Era (Before/After)
+
+We interact `gdp_change_percent` with `post_covid` to see if the relationship changed after the pandemic started.
+
+*Note: The main effect of 'post_covid' is absorbed by the 'year' fixed effects, so it will be dropped, but the interaction will remain.*
+
+```{r}
+model_covid_interaction <- feols(
+  log_program_expenses ~ gdp_change_percent * post_covid + log_revenue | year + state + industry,
+  data = regression_data
+)
+
+summary(model_covid_interaction)
+```
+
+## Model 2: Interaction with Expanding Organizations
+
+We interact `gdp_change_percent` with `expanded_during_covid` to see if organizations that grew during the pandemic respond differently to GDP changes.
+
+```{r}
+model_expansion_interaction <- feols(
+  log_program_expenses ~ gdp_change_percent * expanded_during_covid + log_revenue | year + state + industry,
+  data = regression_data
+)
+
+summary(model_expansion_interaction)
+```
+
+## Model 3: Both Interactions
+
+Including both interaction terms in the same model.
+
+```{r}
+model_combined <- feols(
+  log_program_expenses ~ gdp_change_percent * post_covid + 
+                         gdp_change_percent * expanded_during_covid + 
+                         log_revenue | year + state + industry,
+  data = regression_data
+)
+
+summary(model_combined)
+```
+
+# Export Results
+
+Creating a comparison table of the models.
+
+```{r}
+models_list <- list(
+  "Covid Interaction" = model_covid_interaction,
+  "Expansion Interaction" = model_expansion_interaction,
+  "Combined" = model_combined
+)
+
+# Create the summary table
+interaction_table <- modelsummary(
+  models_list,
+  stars = TRUE,
+  gof_map = c("nobs", "r.squared", "adj.r.squared", "FE: year", "FE: state", "FE: industry"),
+  coef_rename = c(
+    "gdp_change_percent" = "GDP Change %",
+    "log_revenue" = "Log(Revenue)",
+    "post_covid" = "Post-Covid",
+    "gdp_change_percent:post_covid" = "GDP % × Post-Covid",
+    "expanded_during_covid" = "Expanded Org",
+    "gdp_change_percent:expanded_during_covid" = "GDP % × Expanded Org"
+  ),
+  title = "Regression Results: Covid & Expansion Interactions",
+  output = "flextable"
+) %>%
+  autofit() %>%
+  theme_vanilla() %>%
+  bold(part = "header")
+
+# Save to Word
+save_as_docx(interaction_table, path = "../Outputs/covid_interaction_regressions.docx")
+cat("✓ Table saved to ../Outputs/covid_interaction_regressions.docx\n")
+```

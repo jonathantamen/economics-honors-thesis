@@ -115,10 +115,15 @@ for (ind in names(industry_results)) {
   }
 }
 
+# SORTING STEP: Arrange by Coefficient Descending (Highest at top)
+# This ensures the table order matches the visual order in the graph
+summary_table <- summary_table %>%
+  arrange(desc(Coefficient))
+
 # Display the table
 kable(summary_table, 
       digits = 4,
-      caption = "GDP Change Percent Coefficient by Industry")
+      caption = "GDP Change Percent Coefficient by Industry (Sorted by Effect Size)")
 ```
 
 ```{r visualize-heterogeneity, fig.width=10, fig.height=8}
@@ -133,8 +138,14 @@ if (nrow(summary_table) > 0) {
       Significant = ifelse(P_Value < 0.05, "Yes", "No")
     )
   
+  # LOCK ORDER: Set factor levels to match the sorted table.
+  # We reverse() the order because ggplot's coord_flip() puts the last level at the top.
+  # This ensures Table Row 1 (Highest) appears at the Top of the Graph.
+  summary_table$Industry <- factor(summary_table$Industry, levels = rev(summary_table$Industry))
+  
   # Create coefficient plot
-  ggplot(summary_table, aes(x = reorder(Industry, Coefficient), y = Coefficient)) +
+  # Note: removed reorder() since we explicitly set levels above
+  ggplot(summary_table, aes(x = Industry, y = Coefficient)) +
     geom_point(aes(color = Significant), size = 3) +
     geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper, color = Significant), 
                   width = 0.3) +
@@ -148,7 +159,7 @@ if (nrow(summary_table) > 0) {
     ) +
     labs(
       title = "Effect of GDP Change on Program Expenses by Industry",
-      subtitle = "With 95% Confidence Intervals",
+      subtitle = "With 95% Confidence Intervals (Sorted by Magnitude)",
       x = "Industry",
       y = "Coefficient (Effect on Log Program Expenses)",
       color = "Significant at 5%"
@@ -158,10 +169,8 @@ if (nrow(summary_table) > 0) {
 } else {
   cat("No results to plot - check if regressions ran successfully\n")
 }
-```
 
 ## Exporting
-```{r}
 #Image 
 ggsave(
   filename = "../Outputs/industry_coefficient_plot.png",
@@ -172,6 +181,7 @@ ggsave(
 )
 cat("PNG image saved: industry_coefficient_plot.png\n")
 ```
+
 ```{r}
 #Data Table
 formatted_table <- summary_table %>%
@@ -196,14 +206,15 @@ formatted_table <- summary_table %>%
   ) %>%
   colformat_double(j = c("Coefficient", "Std_Error", "P_Value"), digits = 4) %>%
   autofit() %>%
-  theme_vanilla() %>%
+  theme_vanilla()
+
 save_as_docx(formatted_table, path = "../Outputs/industry_results_table.docx")
 cat("Word table saved: industry_results_table.docx\n")
 ```
 
 # Organization Size Heterogeinety Test
 ```{r}
-revenue_data <- data_set %>%
+revenue_data <- data %>%
   mutate(
     # Calculate quintiles based on total_revenue
     revenue_quintile = ntile(total_revenue, 5),
@@ -342,7 +353,7 @@ if (nrow(quintile_summary) > 0) {
     )
   
   # Create plot
-  ggplot(quintile_summary, aes(x = Quintile, y = Coefficient)) +
+  ggplot(quintile_summary, aes(y = Coefficient, x = Quintile)) +
     geom_point(aes(color = Significant), size = 4) +
     geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper, color = Significant),
                   width = 0.2, linewidth = 1) +
@@ -417,5 +428,7 @@ formatted_quintile_table <- quintile_summary %>%
 # Save table as Word document
 save_as_docx(formatted_quintile_table, path = "../Outputs/revenue_quintile_table.docx")
 cat("✓ Word table saved: revenue_quintile_table.docx\n")
+
+print(formatted_quintile_table)
 ```
 
