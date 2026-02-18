@@ -2,7 +2,9 @@
 title: "3e Covid Interaction Regressions"
 author: "Jonathan"
 date: "`r Sys.Date()`"
-output: pdf_document
+output:
+  word_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -20,7 +22,7 @@ library(flextable)
 
 # Load data
 # Pro-tip: use getwd() to verify your working directory
-data_set <- readRDS("Final_Data/final_data_set.rds")
+data_set <- readRDS("../Final_Data/final_data_set.rds")
 ```
 
 # Data Preparation
@@ -143,6 +145,6 @@ interaction_table <- modelsummary(
   bold(part = "header")
 
 # Save to Word
-save_as_docx(interaction_table, path = "Outputs/covid_interaction_regressions.docx")
-cat("✓ Table saved to Outputs/covid_interaction_regressions.docx\n")
+save_as_docx(interaction_table, path = "../Outputs/covid_interaction_regressions.docx")
+cat("✓ Table saved to ../Outputs/covid_interaction_regressions.docx\n")
 ```
