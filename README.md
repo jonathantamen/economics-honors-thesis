@@ -36,8 +36,8 @@ Format: A data frame with 5 million observations across
 - [x] Redo outliers elimination of organizations with zero expenses. First check distribution of organizations and occurrences of zero program expenses. i.e. just one year, can probably keep, but all years then probably remove. 
 - [x] Double check fixed effects code with `feols()` functions. Rerun the regression for each industry. Fixed effect beta is an average. So individual industry is specific.
 - [x] Double check fixed effects based on size of organization. Rerun the regression for each quintile size of organizations. 
-- [ ] Try again with GDP per capita in place of real GDP, of each state. 
-- [ ] Don't need to include company/EIN fixed effects in all models. Just try without first. <!-- Maybe I can do once with, then repeat identical regression without? -->
+- [] Try again with GDP per capita in place of real GDP, of each state. 
+- [x] Don't need to include company/EIN fixed effects in all models. Just try without first. <!-- Maybe I can do once with, then repeat identical regression without? -->
 #regressions
 - [ ] Start testing explanatory variables (`) using [Regression 4]([[/Scripts/3a Preliminary Results.Rmd]]) from my preliminary results.
 - [ ] Explore using an `interaction variable` with COVID-19 for financial decision-making changes of organizations. So, before/after COVID-19 to see if something changed in response to COVID-19 in how organizations respond to changing GDP.

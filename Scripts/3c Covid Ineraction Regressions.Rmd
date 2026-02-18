@@ -1,10 +1,10 @@
 ---
-title: "3e Covid Interaction Regressions"
+title: "3c Covid Interaction Regressions"
 author: "Jonathan"
 date: "`r Sys.Date()`"
 output:
-  word_document: default
   pdf_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -27,29 +27,31 @@ data_set <- readRDS("../Final_Data/final_data_set.rds")
 
 # Data Preparation
 
-We need to create specific interaction variables:
-1. **Post-Covid Indicator**: A dummy variable for years 2020 and later.
-2. **Expanded During Covid**: An indicator for organizations that increased their revenue in 2020 compared to 2019.
+We need to create specific interaction variables: 1. **Post-Covid Indicator**: A dummy variable for years 2020 and later. 2. **Expanded During Covid**: An indicator for organizations that increased their revenue in 2020 compared to 2019.
 
 ```{r}
 # 1. Identify organizations that expanded during Covid (2019 vs 2020)
-org_expansion <- data_set %>%
-  filter(year %in% c(2019, 2020)) %>%
-  select(organization_ein, year, total_revenue) %>%
+org_expansion <- data_set |>
+  filter(year %in% c(2019, 2020)) |>
+  select(organization_ein, year, total_revenue) |>
   # Handle duplicates if any (summing revenue for the year just in case)
-  group_by(organization_ein, year) %>%
-  summarise(total_revenue = sum(total_revenue, na.rm = TRUE), .groups = "drop") %>%
-  pivot_wider(names_from = year, values_from = total_revenue, names_prefix = "rev_") %>%
+  group_by(organization_ein, year) |>
+  summarise(
+    total_revenue = sum(total_revenue, na.rm = TRUE), .groups = "drop"
+  ) |>
+  pivot_wider(
+    names_from = year, values_from = total_revenue, names_prefix = "rev_"
+  ) |>
   # Create the expansion dummy: 1 if 2020 revenue > 2019 revenue
-  mutate(expanded_during_covid = ifelse(rev_2020 > rev_2019, 1, 0)) %>%
-  select(organization_ein, expanded_during_covid) %>%
+  mutate(expanded_during_covid = ifelse(rev_2020 > rev_2019, 1, 0)) |>
+  select(organization_ein, expanded_during_covid) |>
   # Remove NAs (orgs that didn't exist in both years)
   filter(!is.na(expanded_during_covid))
 
 # 2. Merge back and create variables for regression
-regression_data <- data_set %>%
+regression_data <- data_set |>
   # Join the expansion info (left join keeps all orgs, but non-matching ones get NA for expansion)
-  left_join(org_expansion, by = "organization_ein") %>%
+  left_join(org_expansion, by = "organization_ein") |>
   mutate(
     # Log transformations
     log_program_expenses = log(total_program_expenses + 1),
@@ -65,8 +67,7 @@ cat("Number of organizations with expansion data:", sum(!is.na(regression_data$e
 
 # Regressions
 
-The base model requested is:
-`feols(log_program_expenses ~ gdp_change_percent + log_revenue | year + state + industry)`
+The base model requested is: `feols(log_program_expenses ~ gdp_change_percent + log_revenue | year + state + industry)`
 
 We will add interactions to this base.
 
@@ -149,7 +150,6 @@ models_list <- list(
   "Combined (Revenue)" = model_combined_rev
 )
 
-# Create the summary table
 interaction_table <- modelsummary(
   models_list,
   stars = TRUE,
@@ -164,12 +164,16 @@ interaction_table <- modelsummary(
   ),
   title = "Regression Results: Covid & Expansion Interactions",
   output = "flextable"
-) %>%
-  autofit() %>%
-  theme_vanilla() %>%
+) |>
+  autofit() |>
+  theme_vanilla() |>
   bold(part = "header")
 
 # Save to Word
 save_as_docx(interaction_table, path = "../Outputs/covid_interaction_regressions.docx")
-cat("✓ Table saved to ../Outputs/covid_interaction_regressions.docx\n")
+cat("Table saved to ../Outputs/covid_interaction_regressions.docx\n")
+```
+
+```{r}
+print(interaction_table)
 ```
