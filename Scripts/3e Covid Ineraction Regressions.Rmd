@@ -82,7 +82,14 @@ model_covid_interaction <- feols(
   data = regression_data
 )
 
+# Revenue Model
+model_covid_interaction_rev <- feols(
+  log_revenue ~ gdp_change_percent * post_covid | year + state + industry,
+  data = regression_data
+)
+
 summary(model_covid_interaction)
+summary(model_covid_interaction_rev)
 ```
 
 ## Model 2: Interaction with Expanding Organizations
@@ -95,7 +102,14 @@ model_expansion_interaction <- feols(
   data = regression_data
 )
 
+# Revenue Model
+model_expansion_interaction_rev <- feols(
+  log_revenue ~ gdp_change_percent * expanded_during_covid | year + state + industry,
+  data = regression_data
+)
+
 summary(model_expansion_interaction)
+summary(model_expansion_interaction_rev)
 ```
 
 ## Model 3: Both Interactions
@@ -110,7 +124,15 @@ model_combined <- feols(
   data = regression_data
 )
 
+# Revenue Model
+model_combined_rev <- feols(
+  log_revenue ~ gdp_change_percent * post_covid +
+    gdp_change_percent * expanded_during_covid | year + state + industry,
+  data = regression_data
+)
+
 summary(model_combined)
+summary(model_combined_rev)
 ```
 
 # Export Results
@@ -119,9 +141,12 @@ Creating a comparison table of the models.
 
 ```{r}
 models_list <- list(
-  "Covid Interaction" = model_covid_interaction,
-  "Expansion Interaction" = model_expansion_interaction,
-  "Combined" = model_combined
+  "Covid Interaction (Expenses)" = model_covid_interaction,
+  "Covid Interaction (Revenue)" = model_covid_interaction_rev,
+  "Expansion Interaction (Expenses)" = model_expansion_interaction,
+  "Expansion Interaction (Revenue)" = model_expansion_interaction_rev,
+  "Combined (Expenses)" = model_combined,
+  "Combined (Revenue)" = model_combined_rev
 )
 
 # Create the summary table
