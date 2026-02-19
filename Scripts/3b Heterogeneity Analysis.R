@@ -1,36 +1,21 @@
----
-title: "3b Heterogeneity Analysis"
-author: "Jonathan"
-date: "`r Sys.Date()`"
-output: pdf_document
----
-
-```{r setup, include=FALSE}
+## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE)
-```
 
-# Imports
 
-```{r load-packages, message=FALSE, warning=FALSE}
+## ----load-packages, message=FALSE, warning=FALSE------------------------------
 # Load required packages
 library(tidyverse) # For data manipulation
 library(fixest) # For fixed effects regression (feols function)
 library(knitr) # For nice tables
 library(broom) # For tidy regression output
 library(flextable) # For Word-ready tables
-```
 
-```{r load-data}
+
+## ----load-data----------------------------------------------------------------
 data <- readRDS("../Final_Data/final_data_set.rds")
-```
 
-# Industry Subset Heterogeneity Analysis
 
-## Regressions
-
-This section runs separate regressions for each industry to see if the relationship between GDP and program expenses differs across industries.
-
-```{r industry-heterogeneity}
+## ----industry-heterogeneity---------------------------------------------------
 # Get list of unique industries in your data (remove NAs)
 industries <- unique(data$industry)
 industries <- industries[!is.na(industries)] # Remove NA values
@@ -83,11 +68,9 @@ for (ind in industries) {
 
 # Print how many successful regressions we got
 cat("\nSuccessful regressions:", length(industry_results), "\n")
-```
 
-## Display Results
 
-```{r display-results}
+## ----display-results----------------------------------------------------------
 # Create a summary table of coefficients for gdp_change_percent across industries
 summary_table <- data.frame(
   Industry = character(),
@@ -130,13 +113,9 @@ kable(summary_table,
   digits = 4,
   caption = "GDP Change Percent Coefficient by Industry (Sorted by Effect Size)"
 )
-```
 
-**Interpretation:** The table above sorts industries by their sensitivity to GDP changes. A **positive coefficient** indicates that program expenses increase when GDP increases (pro-cyclical), while a **negative coefficient** indicates they decrease (counter-cyclical).
 
-From the results, most industries do **not** show a statistically significant relationship with GDP changes at the 5% level. - **Mutual & Membership Benefit** organizations show a significant *negative* correlation (-2.30%, $p < 0.05$), suggesting their expenses consistently move opposite to the economy. - **Public Safety** also shows a marginally significant negative trend (-1.14%, $p \approx 0.05$). - **Science & Technology** has the highest positive coefficient (+1.98%), but it is not statistically significant due to high variability ($p = 0.26$).
-
-```{r visualize-heterogeneity, fig.width=10, fig.height=8}
+## ----visualize-heterogeneity, fig.width=10, fig.height=8----------------------
 # Only create plot if we have results
 if (nrow(summary_table) > 0) {
   # Create confidence intervals and significance indicator
@@ -189,9 +168,9 @@ ggsave(
   dpi = 300, # High resolution for Word
 )
 cat("PNG image saved: industry_coefficient_plot.png\n")
-```
 
-```{r}
+
+## -----------------------------------------------------------------------------
 # Data Table
 formatted_table <- summary_table %>%
   mutate(
@@ -219,11 +198,9 @@ formatted_table <- summary_table %>%
 
 save_as_docx(formatted_table, path = "../Outputs/industry_results_table.docx")
 cat("Word table saved: industry_results_table.docx\n")
-```
 
-# Organization Size Heterogeinety Test
 
-```{r}
+## -----------------------------------------------------------------------------
 revenue_data <- data %>%
   mutate(
     # Calculate quintiles based on total_revenue
@@ -239,9 +216,9 @@ revenue_data <- data %>%
       TRUE ~ NA_character_
     )
   )
-```
 
-```{r}
+
+## -----------------------------------------------------------------------------
 # Check the revenue ranges for each quintile
 cat("Revenue Quintile Ranges:\n")
 revenue_data %>%
@@ -253,11 +230,9 @@ revenue_data %>%
     N = n()
   ) %>%
   print()
-```
 
-## Regressions
 
-```{r}
+## -----------------------------------------------------------------------------
 # Get list of quintiles
 quintiles <- unique(revenue_data$revenue_quintile)
 quintiles <- quintiles[!is.na(quintiles)] # Remove NAs
@@ -310,11 +285,9 @@ for (q in quintiles) {
 }
 
 cat("\nSuccessful regressions:", length(quintile_results), "\n")
-```
 
-## Display Results
 
-```{r display-quintile-results}
+## ----display-quintile-results-------------------------------------------------
 # Create summary table
 quintile_summary <- data.frame(
   Quintile = character(),
@@ -349,11 +322,9 @@ kable(quintile_summary,
   digits = 4,
   caption = "GDP Effect by Organization Revenue Size (Quintiles)"
 )
-```
 
-**Interpretation:** This table tests if the size of the organization (measured by revenue) determines how much their expenses fluctate with the economy. - The results indicate **no statistically significant relationship** for any specific size group at the 5% confidence level. - **Large organizations (Q4)** show a marginally significant negative correlation (-0.72%, $p = 0.08$), but the largest (Q5) and smallest (Q1) organizations show virtually no correlation ($p > 0.50$). - This suggests that, in general, **organization size alone does not strongly predict** how an organization's program expenses will respond to short-term GDP fluctuations in this model.
 
-```{r visualize-quintile-results, fig.width=8, fig.height=6}
+## ----visualize-quintile-results, fig.width=8, fig.height=6--------------------
 # Create visualization if we have results
 if (nrow(quintile_summary) > 0) {
   # Add confidence intervals
@@ -393,11 +364,9 @@ if (nrow(quintile_summary) > 0) {
 } else {
   cat("No results to plot\n")
 }
-```
 
-## Exporting
 
-```{r}
+## -----------------------------------------------------------------------------
 # Revenue Results image
 ggsave(
   filename = "../Outputs/revenue_quintile_plot.png",
@@ -408,9 +377,9 @@ ggsave(
   bg = "white"
 )
 cat("PNG saved: revenue_quintile_plot.png\n")
-```
 
-```{r}
+
+## -----------------------------------------------------------------------------
 # Revenue Results data table
 formatted_quintile_table <- quintile_summary %>%
   mutate(
@@ -447,4 +416,4 @@ save_as_docx(formatted_quintile_table, path = "../Outputs/revenue_quintile_table
 cat("Word table saved: revenue_quintile_table.docx\n")
 
 print(formatted_quintile_table)
-```
+

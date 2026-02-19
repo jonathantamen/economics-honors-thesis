@@ -19,9 +19,9 @@ org_data <- readRDS(
 # Import gdp data
 gdp_data <- readRDS("../Final_Data/gdp_data.rds")
 
-gdp_data <- gdp_data %>%
+gdp_data <- gdp_data |>
   mutate(YEAR = as.integer(YEAR)) # Making sure data types match
-org_data <- org_data %>%
+org_data <- org_data |>
   mutate(YEAR = as.integer(Year)) # Making sure data types match
 
 # Import activity type data
@@ -59,7 +59,7 @@ columns_to_replace <- c(
   "F9_09_EXP_TOT_MGMT",
   "F9_09_EXP_TOT_FUNDR"
 )
-org_data <- org_data %>% # This function replaces all of the nulls in the above columns with a "0"
+org_data <- org_data |> # This function replaces all of the nulls in the above columns with a "0"
   mutate(across(
     .cols = all_of(columns_to_replace),
     .fns = ~ replace_na(.x, 0)
@@ -78,7 +78,8 @@ negatives_to_remove <- c(
   "F9_09_EXP_TOT_TOT",
   "F9_09_EXP_TOT_PROG",
   "F9_09_EXP_TOT_MGMT",
-  "F9_09_EXP_TOT_FUNDR", ,
+  "F9_09_EXP_TOT_FUNDR",
+
   # Supply side variables
   "F9_08_REV_CONTR_FED_CAMP",
   "F9_08_REV_PROG_TOT_TOT",
@@ -93,7 +94,7 @@ negatives_to_remove <- c(
   "F9_08_REV_TOT_TOT",
   "F9_08_REV_TOT_TOT"
 )
-org_data <- org_data %>%
+org_data <- org_data |>
   filter(if_all(
     .cols = all_of(negatives_to_remove),
     .fns = ~ .x >= 0
@@ -106,7 +107,7 @@ org_data <- org_data %>%
 
 # Formatting my data for all USA states to a format usable for the filter function.
 # Filtering my data to include only USA organizations. Removes ~2,500
-org_data <- org_data %>%
+org_data <- org_data |>
   filter(F9_00_ORG_ADDR_STATE %in% state.abb)
 
 
@@ -120,7 +121,7 @@ state_lookup <- data.frame(
   stringsAsFactors = FALSE
 )
 
-gdp_data <- gdp_data %>%
+gdp_data <- gdp_data |>
   left_join(
     state_lookup,
     by = c("state" = "state_name")
@@ -129,7 +130,7 @@ gdp_data <- gdp_data %>%
 # ==============================================================================
 # 4. GROUPING AND SORTING
 # ==============================================================================
-org_data <- org_data %>%
+org_data <- org_data |>
   arrange(ORG_EIN, Year)
 
 # ==============================================================================
@@ -137,7 +138,7 @@ org_data <- org_data %>%
 # ==============================================================================
 
 # Joining the data now.
-org_data <- org_data %>%
+org_data <- org_data |>
   left_join(
     gdp_data,
     by = c("YEAR",
@@ -146,7 +147,7 @@ org_data <- org_data %>%
   )
 
 # Now I will drop redundant columns.
-org_data <- org_data %>%
+org_data <- org_data |>
   select(
     -Year,
     -state,
@@ -161,7 +162,7 @@ org_data <- org_data %>%
 # This becomes new fixed-effect variables for my analysis
 # Examples: A##: Arts, Culture and Humanities, B##: Education
 
-org_data <- org_data %>%
+org_data <- org_data |>
   left_join(
     activity_data,
     by = c("ORG_EIN" = "EIN")

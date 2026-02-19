@@ -66,11 +66,11 @@ categorical_vars <- c(
 # 3. Generating Descriptive Statistics
 
 # Calculate mathematical statistics for numeric variables
-numeric_summary <- final_org_data %>%
-    select(all_of(numeric_vars)) %>%
+numeric_summary <- final_org_data |>
+    select(all_of(numeric_vars)) |>
     # Pivot stretches the columns out so Variable names are rows, and values line up
-    pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value") %>%
-    group_by(Variable) %>%
+    pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value") |>
+    group_by(Variable) |>
     summarize(
         Observations = sum(!is.na(Value)),
         Mean = mean(Value, na.rm = TRUE),
@@ -80,12 +80,12 @@ numeric_summary <- final_org_data %>%
     )
 
 # Calculate observations for text/categorical variables (Mean, Min, Max do not apply)
-categorical_summary <- final_org_data %>%
-    select(all_of(categorical_vars)) %>%
+categorical_summary <- final_org_data |>
+    select(all_of(categorical_vars)) |>
     # Ensure all values are purely characters first
-    mutate(across(everything(), as.character)) %>%
-    pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value") %>%
-    group_by(Variable) %>%
+    mutate(across(everything(), as.character)) |>
+    pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value") |>
+    group_by(Variable) |>
     summarize(
         Observations = sum(!is.na(Value)),
         # Use NA_real_ to force these into an empty numeric, matching the math table above
@@ -97,8 +97,8 @@ categorical_summary <- final_org_data %>%
 
 # 4. Final Table Assembly
 # Stack our two tables using bind_rows, and attach the plain English descriptions
-final_summary_table <- bind_rows(numeric_summary, categorical_summary) %>%
-    left_join(variable_descriptions, by = "Variable") %>%
+final_summary_table <- bind_rows(numeric_summary, categorical_summary) |>
+    left_join(variable_descriptions, by = "Variable") |>
     # Reorganize column order for readability
     select(Variable, Description, Observations, Mean, Std_Dev, Min, Max)
 
@@ -110,9 +110,9 @@ print(final_summary_table)
 doc <- read_docx()
 
 # Convert the data frame into a formatted flextable
-flex_table <- flextable(final_summary_table) %>%
-    theme_vanilla() %>%
-    autofit() %>%
+flex_table <- flextable(final_summary_table) |>
+    theme_vanilla() |>
+    autofit() |>
     set_caption("Descriptive Statistics for Selected Variables")
 
 # Add the table to the Word document

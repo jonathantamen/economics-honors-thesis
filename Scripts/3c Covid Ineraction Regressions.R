@@ -1,19 +1,8 @@
----
-title: "3c Covid Interaction Regressions"
-author: "Jonathan"
-date: "`r Sys.Date()`"
-output:
-  pdf_document: default
-  word_document: default
----
-
-```{r setup, include=FALSE}
+## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE)
-```
 
-# Imports
 
-```{r, message=FALSE, warning=FALSE}
+## ----message=FALSE, warning=FALSE---------------------------------------------
 # Load libraries
 library(tidyverse)
 library(fixest)
@@ -23,13 +12,9 @@ library(flextable)
 # Load data
 # Pro-tip: use getwd() to verify your working directory
 data_set <- readRDS("../Final_Data/final_data_set.rds")
-```
 
-# Data Preparation
 
-We need to create specific interaction variables: 1. **Post-Covid Indicator**: A dummy variable for years 2020 and later. 2. **Expanded During Covid**: An indicator for organizations that increased their revenue in 2020 compared to 2019.
-
-```{r}
+## -----------------------------------------------------------------------------
 # 1. Identify organizations that expanded during Covid (2019 vs 2020)
 org_expansion <- data_set |>
   filter(year %in% c(2019, 2020)) |>
@@ -63,21 +48,9 @@ regression_data <- data_set |>
 
 # Check how many organizations we successfully labeled
 cat("Number of organizations with expansion data:", sum(!is.na(regression_data$expanded_during_covid)), "\n")
-```
 
-# Regressions
 
-The base model requested is: `feols(log_program_expenses ~ gdp_change_percent + log_revenue | year + state + industry)`
-
-We will add interactions to this base.
-
-## Model 1: Interaction with Covid Era (Before/After)
-
-We interact `gdp_change_percent` with `post_covid` to see if the relationship changed after the pandemic started.
-
-*Note: The main effect of 'post_covid' is absorbed by the 'year' fixed effects, so it will be dropped, but the interaction will remain.*
-
-```{r}
+## -----------------------------------------------------------------------------
 model_covid_interaction <- feols(
   log_program_expenses ~ gdp_change_percent * post_covid + log_revenue | year + state + industry,
   data = regression_data
@@ -91,13 +64,9 @@ model_covid_interaction_rev <- feols(
 
 summary(model_covid_interaction)
 summary(model_covid_interaction_rev)
-```
 
-## Model 2: Interaction with Expanding Organizations
 
-We interact `gdp_change_percent` with `expanded_during_covid` to see if organizations that grew during the pandemic respond differently to GDP changes.
-
-```{r}
+## -----------------------------------------------------------------------------
 model_expansion_interaction <- feols(
   log_program_expenses ~ gdp_change_percent * expanded_during_covid + log_revenue | year + state + industry,
   data = regression_data
@@ -111,13 +80,9 @@ model_expansion_interaction_rev <- feols(
 
 summary(model_expansion_interaction)
 summary(model_expansion_interaction_rev)
-```
 
-## Model 3: Both Interactions
 
-Including both interaction terms in the same model.
-
-```{r}
+## -----------------------------------------------------------------------------
 model_combined <- feols(
   log_program_expenses ~ gdp_change_percent * post_covid +
     gdp_change_percent * expanded_during_covid +
@@ -134,13 +99,9 @@ model_combined_rev <- feols(
 
 summary(model_combined)
 summary(model_combined_rev)
-```
 
-# Export Results
 
-Creating a comparison table of the models.
-
-```{r}
+## -----------------------------------------------------------------------------
 models_list <- list(
   "Covid Interaction (Expenses)" = model_covid_interaction,
   "Covid Interaction (Revenue)" = model_covid_interaction_rev,
@@ -172,8 +133,8 @@ interaction_table <- modelsummary(
 # Save to Word
 save_as_docx(interaction_table, path = "../Outputs/covid_interaction_regressions.docx")
 cat("Table saved to ../Outputs/covid_interaction_regressions.docx\n")
-```
 
-```{r}
+
+## -----------------------------------------------------------------------------
 print(interaction_table)
-```
+
