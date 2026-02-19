@@ -54,6 +54,7 @@ final_org_data <- org_data %>%
     investment_revenue = "F9_08_REV_OTH_INV_NET_TOT",
     other_revenue = "F9_08_REV_MISC_TOT_TOT",
   ) %>%
+  # Key variables: organization_ein, organization_name, state, year, industry, total_program_expenses, total_revenue, donation_revenue, fundraising_revenue, government_revenue, membership_revenue, investment_revenue, other_revenue # nolint: line_length_linter.
   #--------------------------------------------
   # Step 2: Dropping zero activity organizations
   filter(!(organization_ein %in% bad_org_ids)) %>% # filters to organizations that are NOT organizations in bad_eins
