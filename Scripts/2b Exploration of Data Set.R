@@ -53,14 +53,14 @@ numeric_vars <- c(
     "membership_revenue",
     "investment_revenue",
     "other_revenue",
-    "year"
 )
 
 categorical_vars <- c(
     "organization_ein",
     "organization_name",
     "state",
-    "industry"
+    "industry",
+    "year"
 )
 
 # 3. Generating Descriptive Statistics
@@ -87,7 +87,7 @@ categorical_summary <- final_org_data |>
     pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value") |>
     group_by(Variable) |>
     summarize(
-        Observations = sum(!is.na(Value)),
+        Observations = n_distinct(Value, na.rm = TRUE),
         # Use NA_real_ to force these into an empty numeric, matching the math table above
         Mean = NA_real_,
         Std_Dev = NA_real_,
@@ -113,7 +113,9 @@ doc <- read_docx()
 flex_table <- flextable(final_summary_table) |>
     theme_vanilla() |>
     autofit() |>
-    set_caption("Descriptive Statistics for Selected Variables")
+    font(fontname = "Times New Roman", part = "all") |>
+    set_caption("Descriptive Statistics for Selected Variables") |>
+    add_footer_lines("* Observations for categorical variables represent unique counts.")
 
 # Add the table to the Word document
 doc <- body_add_flextable(doc, value = flex_table)

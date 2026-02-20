@@ -9,7 +9,7 @@ data <- readRDS("../Final_Data/final_data_set.rds")
 
 # 2. Prepare Data
 # Select relevant variables and create log transformations
-regression_data <- data %>%
+regression_data <- data |>
     select(
         organization_ein, year, state, industry, gdp_change_percent,
         # Dependent Variables to test
@@ -21,7 +21,7 @@ regression_data <- data %>%
         other_revenue,
         total_revenue,
         total_program_expenses
-    ) %>%
+    ) |>
     mutate(
         # Create Log transformations (log(x + 1) to handle zeros)
         log_donations = log(donation_revenue + 1),
@@ -80,11 +80,11 @@ comparison_table <- modelsummary(
     gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: industry"),
     coef_rename = c("gdp_change_percent" = "GDP Change %"),
     title = "Cyclicality of Non-Profit Revenue Sources (Industry & State FE)",
-    output = "flextable", # Can change to "markdown" or "dataframe" to view in RStudio
-    font = "Times New Roman"
-) %>%
-    autofit() %>%
-    theme_vanilla() %>%
+    output = "flextable" # Can change to "markdown" or "dataframe" to view in RStudio
+) |>
+    autofit() |>
+    theme_vanilla() |>
+    font(fontname = "Times New Roman", part = "all") |>
     bold(part = "header")
 
 # Print to console/viewer
@@ -116,11 +116,11 @@ comparison_table_org_fe <- modelsummary(
     gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: industry", "FE: organization_ein"),
     coef_rename = c("gdp_change_percent" = "GDP Change %"),
     title = "Cyclicality of Non-Profit Revenue Sources (Organization FE)",
-    output = "flextable",
-    font = "Times New Roman"
-) %>%
-    autofit() %>%
-    theme_vanilla() %>%
+    output = "flextable"
+) |>
+    autofit() |>
+    theme_vanilla() |>
+    font(fontname = "Times New Roman", part = "all") |>
     bold(part = "header")
 
 print(comparison_table_org_fe)

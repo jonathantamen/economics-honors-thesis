@@ -128,6 +128,7 @@ interaction_table <- modelsummary(
 ) |>
   autofit() |>
   theme_vanilla() |>
+  font(fontname = "Times New Roman", part = "all") |>
   bold(part = "header")
 
 # Save to Word
@@ -137,4 +138,3 @@ cat("Table saved to ../Outputs/covid_interaction_regressions.docx\n")
 
 ## -----------------------------------------------------------------------------
 print(interaction_table)
-

@@ -30,8 +30,8 @@ activity_data_formatted <- activity_data_raw |>
 
 ## -----------------------------------------------------------------------------
 library(dplyr)
-# This function translates every activity_code (the old version) into new categories into a new column. # nolint
-activity_data_formatted <- activity_data_formatted |> # Thanks, AI for writing the function. # nolint: line_length_linter.
+# This function translates every activity_code (the old version) into new categories into a new column.
+activity_data_formatted <- activity_data_formatted |> # Thanks, AI for writing the function.
   mutate(
     activity_code = as.numeric(substr(ACTIVITY, 1, 3))
   ) |>
@@ -100,7 +100,7 @@ activity_data_formatted <- activity_data_formatted |> # Thanks, AI for writing t
 
 
 ## -----------------------------------------------------------------------------
-# This function converts the new activity categories into more easily understood string values, while maintaining data efficiency by using factor() data format. # nolint: line_length_linter.
+# This function converts the new activity categories into more easily understood string values, while maintaining data efficiency by using factor() data format.
 activity_data_formatted <- activity_data_formatted |>
   mutate(activity_category = case_when(
     activity_category == "A" ~ "Arts, Culture & Humanities",
@@ -129,6 +129,7 @@ activity_data_formatted <- activity_data_formatted |>
     activity_category == "X" ~ "Religion-Related",
     activity_category == "Y" ~ "Mutual & Membership Benefit",
     activity_category == "Z" ~ "Unknown or Unclassified",
+    TRUE ~ "Unknown or Unclassified"
   )) |>
   mutate(activity_category = factor(activity_category))
 

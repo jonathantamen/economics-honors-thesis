@@ -32,8 +32,8 @@ for (ind in industries) {
   cat("Processing industry:", ind, "\n")
 
   # Filter data for this specific industry
-  industry_data <- data %>%
-    filter(industry == ind) %>%
+  industry_data <- data |>
+    filter(industry == ind) |>
     mutate(
       log_program_expenses = log(total_program_expenses + 1),
       log_revenue = log(total_revenue + 1)
@@ -105,7 +105,7 @@ for (ind in names(industry_results)) {
 
 # SORTING STEP: Arrange by Coefficient Descending (Highest at top)
 # This ensures the table order matches the visual order in the graph
-summary_table <- summary_table %>%
+summary_table <- summary_table |>
   arrange(desc(Coefficient))
 
 # Display the table
@@ -119,7 +119,7 @@ kable(summary_table,
 # Only create plot if we have results
 if (nrow(summary_table) > 0) {
   # Create confidence intervals and significance indicator
-  summary_table <- summary_table %>%
+  summary_table <- summary_table |>
     mutate(
       CI_lower = Coefficient - 1.96 * Std_Error,
       CI_upper = Coefficient + 1.96 * Std_Error,
@@ -172,7 +172,7 @@ cat("PNG image saved: industry_coefficient_plot.png\n")
 
 ## -----------------------------------------------------------------------------
 # Data Table
-formatted_table <- summary_table %>%
+formatted_table <- summary_table |>
   mutate(
     # Add stars for significance
     Significance = case_when(
@@ -181,9 +181,9 @@ formatted_table <- summary_table %>%
       P_Value < 0.05 ~ "*",
       TRUE ~ ""
     )
-  ) %>%
-  select(Industry, Coefficient, Std_Error, P_Value, Significance, N_Obs) %>%
-  flextable() %>%
+  ) |>
+  select(Industry, Coefficient, Std_Error, P_Value, Significance, N_Obs) |>
+  flextable() |>
   set_header_labels(
     Industry = "Industry",
     Coefficient = "Coefficient",
@@ -191,17 +191,18 @@ formatted_table <- summary_table %>%
     P_Value = "P-Value",
     Significance = "Sig.",
     N_Obs = "N"
-  ) %>%
-  colformat_double(j = c("Coefficient", "Std_Error", "P_Value"), digits = 4) %>%
-  autofit() %>%
-  theme_vanilla()
+  ) |>
+  colformat_double(j = c("Coefficient", "Std_Error", "P_Value"), digits = 4) |>
+  autofit() |>
+  theme_vanilla() |>
+  font(fontname = "Times New Roman", part = "all")
 
 save_as_docx(formatted_table, path = "../Outputs/industry_results_table.docx")
 cat("Word table saved: industry_results_table.docx\n")
 
 
 ## -----------------------------------------------------------------------------
-revenue_data <- data %>%
+revenue_data <- data |>
   mutate(
     # Calculate quintiles based on total_revenue
     revenue_quintile = ntile(total_revenue, 5),
@@ -221,14 +222,14 @@ revenue_data <- data %>%
 ## -----------------------------------------------------------------------------
 # Check the revenue ranges for each quintile
 cat("Revenue Quintile Ranges:\n")
-revenue_data %>%
-  group_by(revenue_group) %>%
+revenue_data |>
+  group_by(revenue_group) |>
   summarise(
     Min = min(total_revenue, na.rm = TRUE),
     Max = max(total_revenue, na.rm = TRUE),
     Median = median(total_revenue, na.rm = TRUE),
     N = n()
-  ) %>%
+  ) |>
   print()
 
 
@@ -246,8 +247,8 @@ for (q in quintiles) {
   cat("\nProcessing quintile:", q, "\n")
 
   # Filter data for this quintile
-  quintile_data <- revenue_data %>%
-    filter(revenue_quintile == q) %>%
+  quintile_data <- revenue_data |>
+    filter(revenue_quintile == q) |>
     mutate(
       log_program_expenses = log(total_program_expenses + 1),
       log_revenue = log(total_revenue + 1)
@@ -328,7 +329,7 @@ kable(quintile_summary,
 # Create visualization if we have results
 if (nrow(quintile_summary) > 0) {
   # Add confidence intervals
-  quintile_summary <- quintile_summary %>%
+  quintile_summary <- quintile_summary |>
     mutate(
       CI_lower = Coefficient - 1.96 * Std_Error,
       CI_upper = Coefficient + 1.96 * Std_Error,
@@ -381,7 +382,7 @@ cat("PNG saved: revenue_quintile_plot.png\n")
 
 ## -----------------------------------------------------------------------------
 # Revenue Results data table
-formatted_quintile_table <- quintile_summary %>%
+formatted_quintile_table <- quintile_summary |>
   mutate(
     # Add significance stars
     Significance = case_when(
@@ -394,9 +395,9 @@ formatted_quintile_table <- quintile_summary %>%
     CI_lower = Coefficient - 1.96 * Std_Error,
     CI_upper = Coefficient + 1.96 * Std_Error,
     CI_95 = paste0("[", round(CI_lower, 4), ", ", round(CI_upper, 4), "]")
-  ) %>%
-  select(Quintile, Coefficient, Std_Error, CI_95, P_Value, Significance, N_Obs) %>%
-  flextable() %>%
+  ) |>
+  select(Quintile, Coefficient, Std_Error, CI_95, P_Value, Significance, N_Obs) |>
+  flextable() |>
   set_header_labels(
     Quintile = "Revenue Quintile",
     Coefficient = "Coefficient",
@@ -405,10 +406,11 @@ formatted_quintile_table <- quintile_summary %>%
     P_Value = "P-Value",
     Significance = "Sig.",
     N_Obs = "N"
-  ) %>%
-  colformat_double(j = c("Coefficient", "Std_Error", "P_Value"), digits = 4) %>%
-  autofit() %>%
-  theme_vanilla() %>%
+  ) |>
+  colformat_double(j = c("Coefficient", "Std_Error", "P_Value"), digits = 4) |>
+  autofit() |>
+  theme_vanilla() |>
+  font(fontname = "Times New Roman", part = "all") |>
   bold(part = "header")
 
 # Save table as Word document
@@ -416,4 +418,3 @@ save_as_docx(formatted_quintile_table, path = "../Outputs/revenue_quintile_table
 cat("Word table saved: revenue_quintile_table.docx\n")
 
 print(formatted_quintile_table)
-

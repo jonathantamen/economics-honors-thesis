@@ -83,15 +83,14 @@ comparison_table <- modelsummary(
     "log_revenue" = "Log(Revenue)"
   ),
   title = "Non-Profit Economic Cycle: Demand-side vs. Supply-side",
-  output = "flextable",
-  font = "Times New Roman"
+  output = "flextable"
 ) %>%
   autofit() %>%
   theme_vanilla() %>%
+  font(fontname = "Times New Roman", part = "all") %>%
   bold(part = "header")
 
 save_as_docx(comparison_table, path = "../Outputs/preliminary_regression_table.docx")
 
 ## -----------------------------------------------------------------------------
 print(comparison_table)
-
