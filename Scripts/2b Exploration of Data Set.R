@@ -52,7 +52,7 @@ numeric_vars <- c(
     "government_revenue",
     "membership_revenue",
     "investment_revenue",
-    "other_revenue",
+    "other_revenue"
 )
 
 categorical_vars <- c(
