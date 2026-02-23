@@ -132,7 +132,7 @@ interaction_table <- modelsummary(
   bold(part = "header")
 
 # Save to Word
-save_as_docx(interaction_table, path = "../Outputs/covid_interaction_regressions.docx")
+save_as_docx(interaction_table, path = "../Outputs/7-covid_interaction_regressions.docx")
 cat("Table saved to ../Outputs/covid_interaction_regressions.docx\n")
 
 

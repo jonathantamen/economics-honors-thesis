@@ -197,7 +197,7 @@ formatted_table <- summary_table |>
   theme_vanilla() |>
   font(fontname = "Times New Roman", part = "all")
 
-save_as_docx(formatted_table, path = "../Outputs/industry_results_table.docx")
+save_as_docx(formatted_table, path = "../Outputs/6-industry_results_table.docx")
 cat("Word table saved: industry_results_table.docx\n")
 
 
@@ -414,7 +414,7 @@ formatted_quintile_table <- quintile_summary |>
   bold(part = "header")
 
 # Save table as Word document
-save_as_docx(formatted_quintile_table, path = "../Outputs/revenue_quintile_table.docx")
+save_as_docx(formatted_quintile_table, path = "../Outputs/5-revenue_quintile_table.docx")
 cat("Word table saved: revenue_quintile_table.docx\n")
 
 print(formatted_quintile_table)

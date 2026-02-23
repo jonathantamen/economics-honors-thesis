@@ -91,7 +91,7 @@ comparison_table <- modelsummary(
 print(comparison_table)
 
 # Export to Word (Optional)
-save_as_docx(comparison_table, path = "../Outputs/explanatory_variables_experiment.docx")
+save_as_docx(comparison_table, path = "../Outputs/3-explanatory_variables_experiment.docx")
 
 # 6. Organization Fixed Effects Experiment
 model_list_org_fe <- list()
@@ -124,4 +124,4 @@ comparison_table_org_fe <- modelsummary(
     bold(part = "header")
 
 print(comparison_table_org_fe)
-save_as_docx(comparison_table_org_fe, path = "../Outputs/explanatory_variables_experiment_org_fe.docx")
+save_as_docx(comparison_table_org_fe, path = "../Outputs/4-explanatory_variables_experiment_org_fe.docx")

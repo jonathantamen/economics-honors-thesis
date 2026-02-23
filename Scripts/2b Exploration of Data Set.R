@@ -121,4 +121,4 @@ flex_table <- flextable(final_summary_table) |>
 doc <- body_add_flextable(doc, value = flex_table)
 
 # Save the document to your final data folder
-print(doc, target = "../Outputs/Exploratory_Data_Analysis_summary_statistics.docx")
+print(doc, target = "../Outputs/1-Exploratory_Data_Analysis_summary_statistics.docx")
