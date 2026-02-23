@@ -8,7 +8,9 @@ library(tidyverse)
 library(readr)
 library(dplyr)
 library(stringr)
-setwd("/Users/jonat/Library/CloudStorage/OneDrive-ClarkUniversity/CU Courses/Economics Honors Thesis/Scripts")
+setwd(
+  "/Users/jonat/Library/CloudStorage/OneDrive-ClarkUniversity/CU Courses/Economics Honors Thesis/Scripts" # nolint
+)
 
 # Import organization data
 # aka, my main data set
@@ -59,58 +61,12 @@ columns_to_replace <- c(
   "F9_09_EXP_TOT_MGMT",
   "F9_09_EXP_TOT_FUNDR"
 )
-org_data <- org_data |> # This function replaces all of the nulls in the above columns with a "0"
+org_data <- org_data |>
+  # This function replaces all of the nulls in the above columns with a "0"
   mutate(across(
     .cols = all_of(columns_to_replace),
     .fns = ~ replace_na(.x, 0)
   ))
-
-
-# Here, I will remove any negative values in specific financial variables.
-# Negative revenues or expenses are impossible to compute with.
-# Also, they are rare in the data set (occuring ~500 times)
-
-negatives_to_remove <- c(
-  # Demand side variables
-  "F9_09_EXP_GRANT_US_ORG_TOT",
-  "F9_09_EXP_GRANT_US_INDIV_TOT",
-  "F9_09_EXP_GRANT_FRGN_TOT",
-  "F9_09_EXP_TOT_TOT",
-  "F9_09_EXP_TOT_PROG",
-  "F9_09_EXP_TOT_MGMT",
-  "F9_09_EXP_TOT_FUNDR",
-
-  # Supply side variables
-  "F9_08_REV_CONTR_FED_CAMP",
-  "F9_08_REV_PROG_TOT_TOT",
-  "F9_08_REV_CONTR_MEMBSHIP_DUE",
-  "F9_08_REV_CONTR_FUNDR_EVNT",
-  "F9_08_REV_CONTR_RLTD_ORG",
-  "F9_08_REV_CONTR_GOVT_GRANT",
-  "F9_08_REV_CONTR_OTH",
-  "F9_08_REV_CONTR_TOT",
-  "F9_08_REV_OTH_INV_NET_TOT",
-  "F9_08_REV_MISC_TOT_TOT",
-  "F9_08_REV_TOT_TOT",
-  "F9_08_REV_TOT_TOT"
-)
-org_data <- org_data |>
-  filter(if_all(
-    .cols = all_of(negatives_to_remove),
-    .fns = ~ .x >= 0
-  ))
-
-# Here, I will eliminate any organization whose HQ is not in the United States.
-# International organizations will make my data harder to compute.
-# International organizations will also have other unobserved variables.
-# I want my data to be only state abbreviations.
-
-# Formatting my data for all USA states to a format usable for the filter function.
-# Filtering my data to include only USA organizations. Removes ~2,500
-org_data <- org_data |>
-  filter(F9_00_ORG_ADDR_STATE %in% state.abb)
-
-
 # ==============================================================================
 # 3. CLEANING GDP DATA
 # ==============================================================================
