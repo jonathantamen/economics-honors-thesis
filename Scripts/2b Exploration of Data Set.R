@@ -1,12 +1,16 @@
 # Imports
 library(dplyr)
 library(tidyr)
+library(ggplot2) # For data visualization
 library(flextable) # For styling tables in Word
 library(officer) # For exporting to Word documents
 
 # Load data
 final_org_data <- readRDS("../Final_Data/final_data_set.rds")
 
+#--------------------------
+# SUMMARY STATISTICS TABLE
+#--------------------------
 # 1. Variable Descriptions
 # Creating a data frame to document our variables
 variable_descriptions <- data.frame(
@@ -52,7 +56,6 @@ variable_descriptions <- data.frame(
         "Percentage change in real GDP, by state"
     )
 )
-
 # 2. Key Variables Setup
 # Separate numeric from categorical (character) variables
 numeric_vars <- c(
@@ -74,9 +77,7 @@ categorical_vars <- c(
     "industry",
     "year"
 )
-
 # 3. Generating Descriptive Statistics
-
 # Calculate mathematical statistics for numeric variables
 numeric_summary <- final_org_data |>
     select(all_of(numeric_vars)) |>
@@ -92,8 +93,7 @@ numeric_summary <- final_org_data |>
         Min = min(Value, na.rm = TRUE),
         Max = max(Value, na.rm = TRUE)
     )
-
-# Calculate observations for text/categorical variables (Mean, Min, Max do not apply)
+# Calculate observations for text/categorical variables
 categorical_summary <- final_org_data |>
     select(all_of(categorical_vars)) |>
     # Ensure all values are purely characters first
@@ -104,27 +104,23 @@ categorical_summary <- final_org_data |>
     group_by(Variable) |>
     summarize(
         Observations = n_distinct(Value, na.rm = TRUE),
-        # Use NA_real_ to force these into an empty numeric, matching table above
+        # Use NA_real_ to force these into an empty numeric
         Mean = NA_real_,
         Std_Dev = NA_real_,
         Min = NA_real_,
         Max = NA_real_
     )
-
 # 4. Final Table Assembly
-# Stack our two tables using bind_rows, and attach the plain English descriptions
+# Stack our two tables using bind_rows, and attach descriptions
 final_summary_table <- bind_rows(numeric_summary, categorical_summary) |>
     left_join(variable_descriptions, by = "Variable") |>
     # Reorganize column order for readability
     select(Variable, Description, Observations, Mean, Std_Dev, Min, Max)
-
 # Display the polished data frame
 print(final_summary_table)
-
 # 5. Exporting to Word Document
 # Set up an empty Word document
 doc <- read_docx()
-
 # Convert the data frame into a formatted flextable
 flex_table <- flextable(final_summary_table) |>
     theme_vanilla() |>
@@ -134,12 +130,48 @@ flex_table <- flextable(final_summary_table) |>
     add_footer_lines(
         "* Observations for categorical variables represent unique counts."
     )
-
 # Add the table to the Word document
 doc <- body_add_flextable(doc, value = flex_table)
-
 # Save the document to your final data folder
 print(
     doc,
     target = "../Outputs/1-Exploratory_Data_Analysis_summary_statistics.docx"
 )
+
+#--------------------------
+# EXPLORATORY VISUALIZATIONS
+#--------------------------
+# Build a histogram for the distribution of revenues
+revenue_histogram <- ggplot(final_org_data, aes(x = total_revenue)) +
+    geom_histogram(bins = 50, fill = "steelblue", color = "black") +
+    theme_minimal() +
+    labs(
+        title = "Distribution of Total Revenues",
+        x = "Total Revenue ($)",
+        y = "Count of Organizations"
+    )
+
+# Build a histogram for the distribution of program expenses
+expenses_histogram <- ggplot(final_org_data, aes(x = total_program_expenses)) +
+    geom_histogram(bins = 50, fill = "forestgreen", color = "black") +
+    theme_minimal() +
+    labs(
+        title = "Distribution of Program Expenses",
+        x = "Total Program Expenses ($)",
+        y = "Count of Organizations"
+    )
+
+# Build a bar chart for the distribution of observations by year
+year_bar_chart <- ggplot(final_org_data, aes(x = factor(year))) +
+    geom_bar(fill = "coral", color = "black") +
+    theme_minimal() +
+    labs(
+        title = "Observations Across Years",
+        x = "Year",
+        y = "Count of Observations"
+    )
+
+# Optional: Print the plots to view them
+# print(revenue_histogram)
+# print(expenses_histogram)
+# print(year_bar_chart)

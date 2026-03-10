@@ -9,50 +9,27 @@ data <- readRDS("../Final_Data/final_data_set.rds")
 
 # 2. Prepare Data
 # Select relevant variables and create log transformations
-regression_data <- data |>
-    select(
-        organization_ein, year, state, industry, gdp_change_percent,
-        # Dependent Variables to test
-        donation_revenue,
-        fundraising_revenue,
-        government_revenue,
-        membership_revenue,
-        investment_revenue,
-        other_revenue,
-        total_revenue,
-        total_program_expenses
-    ) |>
-    mutate(
-        # Create Log transformations (log(x + 1) to handle zeros)
-        log_donations = log(donation_revenue + 1),
-        log_fundraising = log(fundraising_revenue + 1),
-        log_government = log(government_revenue + 1),
-        log_membership = log(membership_revenue + 1),
-        log_investment = log(investment_revenue + 1),
-        log_other = log(other_revenue + 1),
-        log_total_revenue = log(total_revenue + 1),
-        log_program_expenses = log(total_program_expenses + 1)
-    )
+regression_data <- data
 
 # 3. Define Regression Variables
 # List of dependent variables (Y) to run against gdp_change_percent (X)
 dependent_vars <- c(
-    "log_donations",
-    "log_fundraising",
-    "log_government",
-    "log_membership",
-    "log_investment",
-    "log_other"
+    "log_donation_revenue",
+    "log_fundraising_revenue",
+    "log_government_revenue",
+    "log_membership_revenue",
+    "log_investment_revenue",
+    "log_other_revenue"
 )
 
 # Friendly names for the table
 var_titles <- c(
-    "log_donations" = "Donations",
-    "log_fundraising" = "Fundraising",
-    "log_government" = "Govt Grants",
-    "log_membership" = "Membership",
-    "log_investment" = "Investment",
-    "log_other" = "Other"
+    "log_donation_revenue" = "Donations",
+    "log_fundraising_revenue" = "Fundraising",
+    "log_government_revenue" = "Govt Grants",
+    "log_membership_revenue" = "Membership",
+    "log_investment_revenue" = "Investment",
+    "log_other_revenue" = "Other"
 )
 
 # 4. Run Regressions (Loop)

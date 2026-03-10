@@ -33,11 +33,7 @@ for (ind in industries) {
 
   # Filter data for this specific industry
   industry_data <- data |>
-    filter(industry == ind) |>
-    mutate(
-      log_program_expenses = log(total_program_expenses + 1),
-      log_revenue = log(total_revenue + 1)
-    )
+    filter(industry == ind)
 
   # Check if we have enough data for this industry
   if (nrow(industry_data) < 10) {
@@ -49,7 +45,7 @@ for (ind in industries) {
   model <- tryCatch(
     {
       feols(
-        log_program_expenses ~ gdp_change_percent + log_revenue | year + state + organization_ein,
+        log_total_program_expenses ~ gdp_change_percent + log_total_revenue | year + state + organization_ein,
         data = industry_data
       )
     },
@@ -269,11 +265,7 @@ for (q in quintiles) {
 
   # Filter data for this quintile
   quintile_data <- revenue_data |>
-    filter(revenue_quintile == q) |>
-    mutate(
-      log_program_expenses = log(total_program_expenses + 1),
-      log_revenue = log(total_revenue + 1)
-    )
+    filter(revenue_quintile == q)
 
   cat("  Observations:", nrow(quintile_data), "\n")
 
@@ -287,7 +279,7 @@ for (q in quintiles) {
   model <- tryCatch(
     {
       feols(
-        log_program_expenses ~ gdp_change_percent + log_revenue | year + state + organization_ein,
+        log_total_program_expenses ~ gdp_change_percent + log_total_revenue | year + state + organization_ein,
         data = quintile_data
       )
     },

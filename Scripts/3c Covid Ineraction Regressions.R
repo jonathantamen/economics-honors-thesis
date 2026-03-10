@@ -38,10 +38,6 @@ regression_data <- data_set |>
   # Join the expansion info (left join keeps all orgs, but non-matching ones get NA for expansion)
   left_join(org_expansion, by = "organization_ein") |>
   mutate(
-    # Log transformations
-    log_program_expenses = log(total_program_expenses + 1),
-    log_revenue = log(total_revenue + 1),
-
     # Post-Covid Dummy (Year >= 2020)
     post_covid = ifelse(year >= 2020, 1, 0)
   )
@@ -51,79 +47,32 @@ cat("Number of organizations with expansion data:", sum(!is.na(regression_data$e
 
 
 ## -----------------------------------------------------------------------------
-model_covid_interaction <- feols(
-  log_program_expenses ~ gdp_change_percent * post_covid + log_revenue | year + state + industry + organization_ein,
+model_expansion_predictors <- feols(
+  expanded_during_covid ~ log_donation_revenue + log_fundraising_revenue + log_government_revenue +
+    log_membership_revenue + log_investment_revenue + log_other_revenue | year + state + industry,
   data = regression_data
 )
 
-# Revenue Model
-model_covid_interaction_rev <- feols(
-  log_revenue ~ gdp_change_percent * post_covid | year + state + industry + organization_ein,
-  data = regression_data
-)
-
-summary(model_covid_interaction)
-summary(model_covid_interaction_rev)
-
-
-## -----------------------------------------------------------------------------
-model_expansion_interaction <- feols(
-  log_program_expenses ~ gdp_change_percent * expanded_during_covid + log_revenue | year + state + industry + organization_ein,
-  data = regression_data
-)
-
-# Revenue Model
-model_expansion_interaction_rev <- feols(
-  log_revenue ~ gdp_change_percent * expanded_during_covid | year + state + industry + organization_ein,
-  data = regression_data
-)
-
-summary(model_expansion_interaction)
-summary(model_expansion_interaction_rev)
-
-
-## -----------------------------------------------------------------------------
-model_combined <- feols(
-  log_program_expenses ~ gdp_change_percent * post_covid +
-    gdp_change_percent * expanded_during_covid +
-    log_revenue | year + state + industry + organization_ein,
-  data = regression_data
-)
-
-# Revenue Model
-model_combined_rev <- feols(
-  log_revenue ~ gdp_change_percent * post_covid +
-    gdp_change_percent * expanded_during_covid | year + state + industry + organization_ein,
-  data = regression_data
-)
-
-summary(model_combined)
-summary(model_combined_rev)
-
+summary(model_expansion_predictors)
 
 ## -----------------------------------------------------------------------------
 models_list <- list(
-  "Covid Interaction (Expenses)" = model_covid_interaction,
-  "Covid Interaction (Revenue)" = model_covid_interaction_rev,
-  "Expansion Interaction (Expenses)" = model_expansion_interaction,
-  "Expansion Interaction (Revenue)" = model_expansion_interaction_rev,
-  "Combined (Expenses)" = model_combined,
-  "Combined (Revenue)" = model_combined_rev
+  "Predicting Expansion" = model_expansion_predictors
 )
 
 interaction_table <- modelsummary(
   models_list,
   stars = TRUE,
-  gof_map = c("nobs", "r.squared", "adj.r.squared", "FE: year", "FE: state", "FE: industry", "FE: organization_ein"),
+  gof_map = c("nobs", "r.squared", "adj.r.squared", "FE: year", "FE: state", "FE: industry"),
   coef_rename = c(
-    "gdp_change_percent" = "GDP Change %",
-    "log_revenue" = "Log(Revenue)",
-    "post_covid" = "Post-Covid",
-    "gdp_change_percent:post_covid" = "GDP % × Post-Covid",
-    "expanded_during_covid" = "Expanded Org",
-    "gdp_change_percent:expanded_during_covid" = "GDP % × Expanded Org"
+    "log_donation_revenue" = "Log(Donations)",
+    "log_fundraising_revenue" = "Log(Fundraising)",
+    "log_government_revenue" = "Log(Govt Grants)",
+    "log_membership_revenue" = "Log(Membership)",
+    "log_investment_revenue" = "Log(Investment)",
+    "log_other_revenue" = "Log(Other)"
   ),
-  title = "Regression Results: Covid & Expansion Interactions",
+  title = "Regression Results: Predicting Expansion During Covid",
   output = "flextable"
 ) |>
   autofit() |>
@@ -133,8 +82,7 @@ interaction_table <- modelsummary(
 
 # Save to Word
 save_as_docx(interaction_table, path = "../Outputs/7-covid_interaction_regressions.docx")
-cat("Table saved to ../Outputs/covid_interaction_regressions.docx\n")
-
+cat("Table saved to ../Outputs/7-covid_interaction_regressions.docx\n")
 
 ## -----------------------------------------------------------------------------
 print(interaction_table)

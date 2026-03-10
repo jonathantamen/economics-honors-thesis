@@ -119,17 +119,35 @@ final_org_data <- org_data |>
   #---------------------
   # Step 7: remove singleton fixed-effects
   group_by(organization_ein) |>
-    filter(n() > 1) |>
-    ungroup() |>
-    group_by(state) |>
-    filter(n() > 1) |>
-    ungroup() |>
-    group_by(industry) |>
-    filter(n() > 1) |>
-    ungroup() |>
-    group_by(year) |>
-    filter(n() > 1) |>
-    ungroup()
-  track_rows("After Step 7 (Dropping singleton fixed-effects)")
+  filter(n() > 1) |>
+  ungroup() |>
+  group_by(state) |>
+  filter(n() > 1) |>
+  ungroup() |>
+  group_by(industry) |>
+  filter(n() > 1) |>
+  ungroup() |>
+  group_by(year) |>
+  filter(n() > 1) |>
+  ungroup() |>
+  track_rows("After Step 7 (Dropping singleton fixed-effects)") |>
+  #---------------------
+  # Step 8: Creating log variables
+  mutate(
+    across(
+      c(
+        total_program_expenses,
+        total_revenue,
+        donation_revenue,
+        fundraising_revenue,
+        government_revenue,
+        membership_revenue,
+        investment_revenue,
+        other_revenue
+      ),
+      ~ log(.x + 1),
+      .names = "log_{.col}"
+    )
+  )
 # SAVING
 saveRDS(final_org_data, "../Final_Data/final_data_set.rds")
