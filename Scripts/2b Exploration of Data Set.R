@@ -135,15 +135,22 @@ doc <- body_add_flextable(doc, value = flex_table)
 # Save the document to your final data folder
 print(
     doc,
-    target = "../Outputs/1-Exploratory_Data_Analysis_summary_statistics.docx"
+    target = "../Outputs/5-Exploratory_Data_Analysis_summary_statistics.docx"
 )
 
 #--------------------------
 # EXPLORATORY VISUALIZATIONS
 #--------------------------
+# Disable scientific notation globally for this session
+options(scipen = 999)
+
+# We'll use a formatter function to add commas to our axis labels, making large numbers readable
+format_comma <- function(x) format(x, big.mark = ",", scientific = FALSE)
+
 # Build a histogram for the distribution of revenues
-revenue_histogram <- ggplot(final_org_data, aes(x = total_revenue)) +
+revenue_histogram <- ggplot(final_org_data, aes(x = log_total_revenue)) +
     geom_histogram(bins = 50, fill = "steelblue", color = "black") +
+    scale_y_continuous(labels = format_comma) +
     theme_minimal() +
     labs(
         title = "Distribution of Total Revenues",
@@ -152,8 +159,9 @@ revenue_histogram <- ggplot(final_org_data, aes(x = total_revenue)) +
     )
 
 # Build a histogram for the distribution of program expenses
-expenses_histogram <- ggplot(final_org_data, aes(x = total_program_expenses)) +
+expenses_histogram <- ggplot(final_org_data, aes(x = log_total_program_expenses)) +
     geom_histogram(bins = 50, fill = "forestgreen", color = "black") +
+    scale_y_continuous(labels = format_comma) +
     theme_minimal() +
     labs(
         title = "Distribution of Program Expenses",
@@ -164,6 +172,7 @@ expenses_histogram <- ggplot(final_org_data, aes(x = total_program_expenses)) +
 # Build a bar chart for the distribution of observations by year
 year_bar_chart <- ggplot(final_org_data, aes(x = factor(year))) +
     geom_bar(fill = "coral", color = "black") +
+    scale_y_continuous(labels = format_comma) +
     theme_minimal() +
     labs(
         title = "Observations Across Years",
@@ -172,6 +181,96 @@ year_bar_chart <- ggplot(final_org_data, aes(x = factor(year))) +
     )
 
 # Optional: Print the plots to view them
-# print(revenue_histogram)
-# print(expenses_histogram)
-# print(year_bar_chart)
+print(revenue_histogram)
+print(expenses_histogram)
+print(year_bar_chart)
+
+# Save the visualizations to the Outputs folder
+ggsave(
+    filename = "../Outputs/2-Distribution_of_Total_Revenues.png",
+    plot = revenue_histogram,
+    width = 8,
+    height = 6,
+    dpi = 300
+)
+
+ggsave(
+    filename = "../Outputs/3-Distribution_of_Program_Expenses.png",
+    plot = expenses_histogram,
+    width = 8,
+    height = 6,
+    dpi = 300
+)
+
+ggsave(
+    filename = "../Outputs/4-Observations_Across_Years.png",
+    plot = year_bar_chart,
+    width = 8,
+    height = 6,
+    dpi = 300
+)
+
+#--------------------------
+# INDUSTRY DISTRIBUTION TABLE
+#--------------------------
+# Create a mapping of industry names to their corresponding letters and count observations
+industry_distribution <- final_org_data |>
+    group_by(industry) |>
+    summarize(Observations = n(), .groups = "drop") |>
+    mutate(
+        Letter = case_when(
+            industry == "Arts, Culture & Humanities" ~ "A",
+            industry == "Education" ~ "B",
+            industry == "Environment" ~ "C",
+            industry == "Animal-Related" ~ "D",
+            industry == "Health Care" ~ "E",
+            industry == "Mental Health & Crisis Intervention" ~ "F",
+            industry == "Voluntary Health Associations & Medical Disciplines" ~ "G",
+            industry == "Medical Research" ~ "H",
+            industry == "Crime & Legal-Related" ~ "I",
+            industry == "Employment" ~ "J",
+            industry == "Food, Agriculture & Nutrition" ~ "K",
+            industry == "Housing & Shelter" ~ "L",
+            industry == "Public Safety" ~ "M",
+            industry == "Recreation & Sports" ~ "N",
+            industry == "Youth Development" ~ "O",
+            industry == "Human Services" ~ "P",
+            industry == "International, Foreign Affairs" ~ "Q",
+            industry == "Civil Rights, Social Action & Advocacy" ~ "R",
+            industry == "Community Improvement & Capacity Building" ~ "S",
+            industry == "Philanthropy, Voluntarism & Grantmaking" ~ "T",
+            industry == "Science & Technology" ~ "U",
+            industry == "Social Science" ~ "V",
+            industry == "Public & Societal Benefit" ~ "W",
+            industry == "Religion-Related" ~ "X",
+            industry == "Mutual & Membership Benefit" ~ "Y",
+            industry == "Unknown or Unclassified" ~ "Z",
+            TRUE ~ "Z"
+        )
+    ) |>
+    # Reorder columns to have Letter first, rename industry to Industry
+    select(Letter, Industry = industry, Observations) |>
+    # Sort alphabetically by Letter
+    arrange(Letter)
+
+print(industry_distribution)
+
+# Export this table to a new Word document
+doc_industry <- read_docx()
+
+flex_table_industry <- flextable(industry_distribution) |>
+    theme_vanilla() |>
+    autofit() |>
+    font(fontname = "Times New Roman", part = "all") |>
+    set_caption("Distribution of Observations by Industry") |>
+    add_footer_lines(
+        "* Observations represent total count of non-profits in each category."
+    )
+
+doc_industry <- body_add_flextable(doc_industry, value = flex_table_industry)
+
+# Save the document to your Outputs folder
+print(
+    doc_industry,
+    target = "../Outputs/1-Industry_Distribution_Table.docx"
+)
