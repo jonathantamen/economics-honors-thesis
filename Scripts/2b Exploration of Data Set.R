@@ -23,7 +23,8 @@ variable_descriptions <- data.frame(
         "government_revenue",
         "membership_revenue",
         "investment_revenue",
-        "other_revenue"
+        "other_revenue",
+        "gdp_change_percent"
     ),
     Description = c(
         "Unique identifier (Employer Identification Number)",
@@ -31,14 +32,24 @@ variable_descriptions <- data.frame(
         "State where the organization is located",
         "Tax year of the filing and GDP record",
         "Primary activity/industry category",
-        "Total expenses directed towards programs. Represents the demand for the organization's services.",
-        "Total revenue from all sources. Represents the supply of the organization's services.",
+        paste(
+            "Total expenses directed towards programs.",
+            "Represents the demand for the organization's services."
+        ),
+        paste(
+            "Total revenue from all sources.",
+            "Represents the supply of the organization's services."
+        ),
         "Revenue from campaigns and direct donations",
         "Revenue from fundraising events",
         "Revenue from government grants",
         "Revenue from membership dues",
         "Net income from investments",
-        "Miscellaneous revenue from other sources (i.e. sale of property, etc.)"
+        paste(
+            "Miscellaneous revenue from other sources",
+            "(i.e. sale of property, etc.)"
+        ),
+        "Percentage change in real GDP, by state"
     )
 )
 
@@ -52,7 +63,8 @@ numeric_vars <- c(
     "government_revenue",
     "membership_revenue",
     "investment_revenue",
-    "other_revenue"
+    "other_revenue",
+    "gdp_change_percent"
 )
 
 categorical_vars <- c(
@@ -68,8 +80,10 @@ categorical_vars <- c(
 # Calculate mathematical statistics for numeric variables
 numeric_summary <- final_org_data |>
     select(all_of(numeric_vars)) |>
-    # Pivot stretches the columns out so Variable names are rows, and values line up
-    pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value") |>
+    # Pivot stretches columns so Variable names are rows, and values line up
+    pivot_longer(
+        cols = everything(), names_to = "Variable", values_to = "Value"
+    ) |>
     group_by(Variable) |>
     summarize(
         Observations = sum(!is.na(Value)),
@@ -84,11 +98,13 @@ categorical_summary <- final_org_data |>
     select(all_of(categorical_vars)) |>
     # Ensure all values are purely characters first
     mutate(across(everything(), as.character)) |>
-    pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value") |>
+    pivot_longer(
+        cols = everything(), names_to = "Variable", values_to = "Value"
+    ) |>
     group_by(Variable) |>
     summarize(
         Observations = n_distinct(Value, na.rm = TRUE),
-        # Use NA_real_ to force these into an empty numeric, matching the math table above
+        # Use NA_real_ to force these into an empty numeric, matching table above
         Mean = NA_real_,
         Std_Dev = NA_real_,
         Min = NA_real_,
@@ -115,10 +131,15 @@ flex_table <- flextable(final_summary_table) |>
     autofit() |>
     font(fontname = "Times New Roman", part = "all") |>
     set_caption("Descriptive Statistics for Selected Variables") |>
-    add_footer_lines("* Observations for categorical variables represent unique counts.")
+    add_footer_lines(
+        "* Observations for categorical variables represent unique counts."
+    )
 
 # Add the table to the Word document
 doc <- body_add_flextable(doc, value = flex_table)
 
 # Save the document to your final data folder
-print(doc, target = "../Outputs/1-Exploratory_Data_Analysis_summary_statistics.docx")
+print(
+    doc,
+    target = "../Outputs/1-Exploratory_Data_Analysis_summary_statistics.docx"
+)

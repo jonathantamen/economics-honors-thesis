@@ -8,9 +8,6 @@ library(tidyverse)
 library(readr)
 library(dplyr)
 library(stringr)
-setwd(
-  "/Users/jonat/Library/CloudStorage/OneDrive-ClarkUniversity/CU Courses/Economics Honors Thesis/Scripts" # nolint
-)
 
 # Import organization data
 # aka, my main data set

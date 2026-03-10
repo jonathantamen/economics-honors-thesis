@@ -32,26 +32,15 @@ bad_org_ids <- org_data |> # Thanks, AI.
 # Setup for removing negative financial values
 negatives_to_remove <- c(
   # Demand side variables
-  "F9_09_EXP_GRANT_US_ORG_TOT",
-  "F9_09_EXP_GRANT_US_INDIV_TOT",
-  "F9_09_EXP_GRANT_FRGN_TOT",
-  "F9_09_EXP_TOT_TOT",
-  "F9_09_EXP_TOT_PROG",
-  "F9_09_EXP_TOT_MGMT",
-  "F9_09_EXP_TOT_FUNDR",
+  "total_program_expenses",
   # Supply side variables
-  "F9_08_REV_CONTR_FED_CAMP",
-  "F9_08_REV_PROG_TOT_TOT",
-  "F9_08_REV_CONTR_MEMBSHIP_DUE",
-  "F9_08_REV_CONTR_FUNDR_EVNT",
-  "F9_08_REV_CONTR_RLTD_ORG",
-  "F9_08_REV_CONTR_GOVT_GRANT",
-  "F9_08_REV_CONTR_OTH",
-  "F9_08_REV_CONTR_TOT",
-  "F9_08_REV_OTH_INV_NET_TOT",
-  "F9_08_REV_MISC_TOT_TOT",
-  "F9_08_REV_TOT_TOT",
-  "F9_08_REV_TOT_TOT"
+  "donation_revenue",
+  "membership_revenue",
+  "fundraising_revenue",
+  "government_revenue",
+  "investment_revenue",
+  "other_revenue",
+  "total_revenue"
 )
 
 #--------------------------
@@ -59,7 +48,7 @@ negatives_to_remove <- c(
 # Helper function to track rows
 track_rows <- function(data, step_name) {
   cat(paste0(step_name, ": ", nrow(data), " rows remaining\n"))
-  return(data)
+  data
 }
 
 # Main filtering function
@@ -101,27 +90,46 @@ final_org_data <- org_data |>
   # Step 4: Removing negative values
   # Here, I will remove any negative values in specific financial variables.
   # Negative revenues or expenses are impossible to compute with.
-  filter(across(all_of(negatives_to_remove), ~ .x >= 0)) |>
+  filter(if_all(all_of(negatives_to_remove), ~ .x >= 0)) |>
+  track_rows("After Step 4 (Dropping negative values)") |>
   #---------------------
-  # Step 5: Creating log variables
-  # Here, I will create log variables for the financial variables.
-  # This is to account for the skewness of the data.
-  # This makes it easier to use these variables later in my regression analysis.
-  mutate(
-    log_total_program_expenses = log(total_program_expenses),
-    log_total_revenue = log(total_revenue),
-    log_donation_revenue = log(donation_revenue),
-    log_fundraising_revenue = log(fundraising_revenue),
-    log_government_revenue = log(government_revenue),
-    log_membership_revenue = log(membership_revenue),
-    log_investment_revenue = log(investment_revenue),
-    log_other_revenue = log(other_revenue)
-  ) |>
-  #---------------------
-  # Step 6: Filtering to only 50 US States
+  # Step 5: Filtering to only 50 US States
   # Here, I will remove any organizations that are not in the 50 US States.
   filter(state %in% state.abb) |>
+  track_rows("After Step 5 (Dropping international orgs.)") |>
   # filters to organizations that have 'state' = a US state abbreviation
   #---------------------
-  # SAVING
-  saveRDS(final_org_data, "../Final_Data/final_data_set.rds")
+  # Step 6: Restricting data set to specific variables
+  select(
+    organization_ein,
+    organization_name,
+    state,
+    year,
+    industry,
+    total_program_expenses,
+    total_revenue,
+    donation_revenue,
+    fundraising_revenue,
+    government_revenue,
+    membership_revenue,
+    investment_revenue,
+    other_revenue,
+    gdp_change_percent
+  ) |>
+  #---------------------
+  # Step 7: remove singleton fixed-effects
+  group_by(organization_ein) |>
+    filter(n() > 1) |>
+    ungroup() |>
+    group_by(state) |>
+    filter(n() > 1) |>
+    ungroup() |>
+    group_by(industry) |>
+    filter(n() > 1) |>
+    ungroup() |>
+    group_by(year) |>
+    filter(n() > 1) |>
+    ungroup()
+  track_rows("After Step 7 (Dropping singleton fixed-effects)")
+# SAVING
+saveRDS(final_org_data, "../Final_Data/final_data_set.rds")

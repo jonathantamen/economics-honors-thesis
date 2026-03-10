@@ -1,4 +1,9 @@
 # Master Script to run the data pipeline in sequence
+# Installations
+# install.package("fixest")
+# install.package("modelsummary")
+# install.packages("flextable")
+# install.packages("tidyverse")
 
 # Ensure we are in the correct working directory (the Scripts folder)
 setwd(

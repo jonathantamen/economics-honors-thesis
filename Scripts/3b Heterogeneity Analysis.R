@@ -49,7 +49,7 @@ for (ind in industries) {
   model <- tryCatch(
     {
       feols(
-        log_program_expenses ~ gdp_change_percent + log_revenue | year + state,
+        log_program_expenses ~ gdp_change_percent + log_revenue | year + state + organization_ein,
         data = industry_data
       )
     },
@@ -202,10 +202,17 @@ cat("Word table saved: industry_results_table.docx\n")
 
 
 ## -----------------------------------------------------------------------------
-revenue_data <- data |>
+# 1. Determine base year (Year 1) revenue for each organization
+base_revenue_data <- data |>
+  group_by(organization_ein) |>
+  filter(!is.na(total_revenue)) |>
+  arrange(year) |>
+  slice(1) |> # Take the first year available for each organization
+  ungroup() |>
+  select(organization_ein, base_revenue = total_revenue) |>
   mutate(
-    # Calculate quintiles based on total_revenue
-    revenue_quintile = ntile(total_revenue, 5),
+    # Calculate quintiles based on base year revenue
+    revenue_quintile = ntile(base_revenue, 5),
 
     # Create descriptive labels for each quintile
     revenue_group = case_when(
@@ -218,18 +225,32 @@ revenue_data <- data |>
     )
   )
 
+# 2. Apply these fixed quintile groups to all years for each organization
+revenue_data <- data |>
+  left_join(
+    base_revenue_data |> select(organization_ein, revenue_quintile, revenue_group),
+    by = "organization_ein"
+  )
+
 
 ## -----------------------------------------------------------------------------
-# Check the revenue ranges for each quintile
-cat("Revenue Quintile Ranges:\n")
-revenue_data |>
+# Check the base revenue ranges for each quintile and count of organizations
+cat("Revenue Quintile Ranges (Based on Year 1 Revenue):\n")
+base_revenue_data |>
   group_by(revenue_group) |>
   summarise(
-    Min = min(total_revenue, na.rm = TRUE),
-    Max = max(total_revenue, na.rm = TRUE),
-    Median = median(total_revenue, na.rm = TRUE),
-    N = n()
+    Min = min(base_revenue, na.rm = TRUE),
+    Max = max(base_revenue, na.rm = TRUE),
+    Median = median(base_revenue, na.rm = TRUE),
+    N_Orgs = n()
   ) |>
+  print()
+
+# Check total observations per quintile in the full dataset
+cat("\nTotal Observations across all years per quintile:\n")
+revenue_data |>
+  group_by(revenue_group) |>
+  summarise(N_Obs = n()) |>
   print()
 
 
@@ -266,7 +287,7 @@ for (q in quintiles) {
   model <- tryCatch(
     {
       feols(
-        log_program_expenses ~ gdp_change_percent + log_revenue | year + state,
+        log_program_expenses ~ gdp_change_percent + log_revenue | year + state + organization_ein,
         data = quintile_data
       )
     },

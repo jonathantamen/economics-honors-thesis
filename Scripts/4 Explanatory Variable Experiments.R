@@ -61,7 +61,9 @@ model_list <- list()
 
 for (var in dependent_vars) {
     # Create formula: var ~ gdp_change_percent | Fixed Effects
-    fml <- as.formula(paste(var, "~ gdp_change_percent | year + state + industry"))
+    fml <- as.formula(
+        paste(var, "~ gdp_change_percent | year + state + industry + organization_ein")
+    )
 
     # Run regression
     model <- feols(fml, data = regression_data)
@@ -77,10 +79,10 @@ for (var in dependent_vars) {
 comparison_table <- modelsummary(
     model_list,
     stars = TRUE,
-    gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: industry"),
+    gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: industry", "FE: organization_ein"),
     coef_rename = c("gdp_change_percent" = "GDP Change %"),
     title = "Cyclicality of Non-Profit Revenue Sources (Industry & State FE)",
-    output = "flextable" # Can change to "markdown" or "dataframe" to view in RStudio
+    output = "flextable" # Can change to "markdown" or "dataframe" to view in R
 ) |>
     autofit() |>
     theme_vanilla() |>
@@ -91,14 +93,20 @@ comparison_table <- modelsummary(
 print(comparison_table)
 
 # Export to Word (Optional)
-save_as_docx(comparison_table, path = "../Outputs/3-explanatory_variables_experiment.docx")
+save_as_docx(
+    comparison_table,
+    path = "../Outputs/3-explanatory_variables_experiment.docx"
+)
 
 # 6. Organization Fixed Effects Experiment
 model_list_org_fe <- list()
 
 for (var in dependent_vars) {
     # Create formula: var ~ gdp_change_percent | Fixed Effects + Organization
-    fml <- as.formula(paste(var, "~ gdp_change_percent | year + state + industry + organization_ein"))
+    fml_str <- paste(
+        var, "~ gdp_change_percent | year + state + industry + organization_ein"
+    )
+    fml <- as.formula(fml_str)
 
     # Run regression
     model <- feols(fml, data = regression_data)
@@ -113,7 +121,10 @@ for (var in dependent_vars) {
 comparison_table_org_fe <- modelsummary(
     model_list_org_fe,
     stars = TRUE,
-    gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: industry", "FE: organization_ein"),
+    gof_map = c(
+        "nobs", "r.squared", "FE: year", "FE: state", "FE: industry",
+        "FE: organization_ein"
+    ),
     coef_rename = c("gdp_change_percent" = "GDP Change %"),
     title = "Cyclicality of Non-Profit Revenue Sources (Organization FE)",
     output = "flextable"
@@ -124,4 +135,7 @@ comparison_table_org_fe <- modelsummary(
     bold(part = "header")
 
 print(comparison_table_org_fe)
-save_as_docx(comparison_table_org_fe, path = "../Outputs/4-explanatory_variables_experiment_org_fe.docx")
+save_as_docx(
+    comparison_table_org_fe,
+    path = "../Outputs/4-explanatory_variables_experiment_org_fe.docx"
+)

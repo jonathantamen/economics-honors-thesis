@@ -52,13 +52,13 @@ cat("Number of organizations with expansion data:", sum(!is.na(regression_data$e
 
 ## -----------------------------------------------------------------------------
 model_covid_interaction <- feols(
-  log_program_expenses ~ gdp_change_percent * post_covid + log_revenue | year + state + industry,
+  log_program_expenses ~ gdp_change_percent * post_covid + log_revenue | year + state + industry + organization_ein,
   data = regression_data
 )
 
 # Revenue Model
 model_covid_interaction_rev <- feols(
-  log_revenue ~ gdp_change_percent * post_covid | year + state + industry,
+  log_revenue ~ gdp_change_percent * post_covid | year + state + industry + organization_ein,
   data = regression_data
 )
 
@@ -68,13 +68,13 @@ summary(model_covid_interaction_rev)
 
 ## -----------------------------------------------------------------------------
 model_expansion_interaction <- feols(
-  log_program_expenses ~ gdp_change_percent * expanded_during_covid + log_revenue | year + state + industry,
+  log_program_expenses ~ gdp_change_percent * expanded_during_covid + log_revenue | year + state + industry + organization_ein,
   data = regression_data
 )
 
 # Revenue Model
 model_expansion_interaction_rev <- feols(
-  log_revenue ~ gdp_change_percent * expanded_during_covid | year + state + industry,
+  log_revenue ~ gdp_change_percent * expanded_during_covid | year + state + industry + organization_ein,
   data = regression_data
 )
 
@@ -86,14 +86,14 @@ summary(model_expansion_interaction_rev)
 model_combined <- feols(
   log_program_expenses ~ gdp_change_percent * post_covid +
     gdp_change_percent * expanded_during_covid +
-    log_revenue | year + state + industry,
+    log_revenue | year + state + industry + organization_ein,
   data = regression_data
 )
 
 # Revenue Model
 model_combined_rev <- feols(
   log_revenue ~ gdp_change_percent * post_covid +
-    gdp_change_percent * expanded_during_covid | year + state + industry,
+    gdp_change_percent * expanded_during_covid | year + state + industry + organization_ein,
   data = regression_data
 )
 
@@ -114,7 +114,7 @@ models_list <- list(
 interaction_table <- modelsummary(
   models_list,
   stars = TRUE,
-  gof_map = c("nobs", "r.squared", "adj.r.squared", "FE: year", "FE: state", "FE: industry"),
+  gof_map = c("nobs", "r.squared", "adj.r.squared", "FE: year", "FE: state", "FE: industry", "FE: organization_ein"),
   coef_rename = c(
     "gdp_change_percent" = "GDP Change %",
     "log_revenue" = "Log(Revenue)",
