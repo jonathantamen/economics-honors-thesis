@@ -77,24 +77,26 @@ save_as_docx(comparison_table, path = "../Outputs/2-preliminary_regression_table
 print(comparison_table)
 ## -----------------------------------------------------------------------------
 ## Iterative Regressions Comparison Table and Output
-iterative_demand_models <- list(
+iterative_demand_models = list(
   "Demand (Base)" = model1demand,
   "Demand (+Year)" = model2demand,
   "Demand (+State)" = macro_fixed_effects_demand_model,
-  "Demand (+Industry)" = industry_fixed_effects_demand_model
+  "Demand (+Industry)" = industry_fixed_effects_demand_model,
+  "Demand (+Firm)" = firm_fixed_effects_demand_model
 )
 
-iterative_supply_models <- list(
+iterative_supply_models = list(
   "Supply (Base)" = model1supply,
   "Supply (+Year)" = model2supply,
   "Supply (+State)" = macro_fixed_effects_supply_model,
-  "Supply (+Industry)" = industry_fixed_effects_supply_model
+  "Supply (+Industry)" = industry_fixed_effects_supply_model,
+  "Supply (+Firm)" = firm_fixed_effects_supply_model
 )
 
-iterative_demand_table <- modelsummary(
+iterative_demand_table = modelsummary(
   iterative_demand_models,
   stars = TRUE,
-  gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: industry"),
+  gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: industry", "FE: organization_ein"),
   coef_rename = c("gdp_change_percent" = "GDP Change %"),
   title = "Iterative Demand Side Results",
   output = "flextable"
@@ -104,10 +106,10 @@ iterative_demand_table <- modelsummary(
   font(fontname = "Times New Roman", part = "all") |>
   bold(part = "header")
 
-iterative_supply_table <- modelsummary(
+iterative_supply_table = modelsummary(
   iterative_supply_models,
   stars = TRUE,
-  gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: industry"),
+  gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: industry", "FE: organization_ein"),
   coef_rename = c("gdp_change_percent" = "GDP Change %"),
   title = "Iterative Supply Side Results",
   output = "flextable"
