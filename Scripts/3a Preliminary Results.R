@@ -119,7 +119,7 @@ iterative_supply_table = modelsummary(
   font(fontname = "Times New Roman", part = "all") |>
   bold(part = "header")
 
-save_as_docx(iterative_demand_table, iterative_supply_table, path = "../Outputs/1-iterative_regression_tables.docx")
+save_as_docx(iterative_demand_table, iterative_supply_table, path = "../Outputs/6-iterative_regression_tables.docx")
 ## -----------------------------------------------------------------------------
 print(iterative_demand_table)
 print(iterative_supply_table)
