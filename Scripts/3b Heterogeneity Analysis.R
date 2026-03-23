@@ -169,30 +169,21 @@ cat("PNG image saved: industry_coefficient_plot.png\n")
 
 ## -----------------------------------------------------------------------------
 # Data Table
-formatted_table <- summary_table |>
-  mutate(
-    # Add stars for significance
-    Significance = case_when(
-      P_Value < 0.001 ~ "***",
-      P_Value < 0.01 ~ "**",
-      P_Value < 0.05 ~ "*",
-      TRUE ~ ""
-    )
-  ) |>
-  select(Industry, Coefficient, Std_Error, P_Value, Significance, N_Obs) |>
-  flextable() |>
-  set_header_labels(
-    Industry = "Industry",
-    Coefficient = "Coefficient",
-    Std_Error = "Std. Error",
-    P_Value = "P-Value",
-    Significance = "Sig.",
-    N_Obs = "N"
-  ) |>
-  colformat_double(j = c("Coefficient", "Std_Error", "P_Value"), digits = 4) |>
+formatted_table <- modelsummary(
+  industry_results,
+  stars = TRUE,
+  gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: organization_ein"),
+  coef_rename = c(
+    "gdp_change_percent" = "GDP Change %",
+    "log_total_revenue" = "Log(Revenue)"
+  ),
+  title = "GDP Effect on Program Expenses by Industry",
+  output = "flextable"
+) |>
   autofit() |>
   theme_vanilla() |>
-  font(fontname = "Times New Roman", part = "all")
+  font(fontname = "Times New Roman", part = "all") |>
+  bold(part = "header")
 
 save_as_docx(formatted_table, path = "../Outputs/6-industry_results_table.docx")
 cat("Word table saved: industry_results_table.docx\n")
@@ -280,7 +271,7 @@ for (q in quintiles) {
   model <- tryCatch(
     {
       feols(
-        log_total_program_expenses ~ gdp_change_percent + log_total_revenue | year + state + organization_ein,
+        log_total_program_expenses ~ gdp_change_percent + log_total_revenue | year + state + industry + organization_ein,
         data = quintile_data
       )
     },
@@ -399,7 +390,7 @@ cat("PNG saved: revenue_quintile_plot.png\n")
 formatted_quintile_table <- modelsummary(
   quintile_results,
   stars = TRUE,
-  gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: organization_ein"),
+  gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: industry", "FE: organization_ein"),
   coef_rename = c(
     "gdp_change_percent" = "GDP Change %",
     "log_total_revenue" = "Log(Revenue)"
