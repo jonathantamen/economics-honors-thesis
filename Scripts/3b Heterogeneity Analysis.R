@@ -171,6 +171,7 @@ cat("PNG image saved: industry_coefficient_plot.png\n")
 # Data Table
 formatted_table <- modelsummary(
   industry_results,
+  shape = model ~ term,
   stars = TRUE,
   gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: organization_ein"),
   coef_rename = c(
