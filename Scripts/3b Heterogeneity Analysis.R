@@ -9,6 +9,7 @@ library(fixest) # For fixed effects regression (feols function)
 library(knitr) # For nice tables
 library(broom) # For tidy regression output
 library(flextable) # For Word-ready tables
+library(modelsummary) # For regression tables
 
 
 ## ----load-data----------------------------------------------------------------
@@ -197,7 +198,7 @@ save_as_docx(formatted_table, path = "../Outputs/6-industry_results_table.docx")
 cat("Word table saved: industry_results_table.docx\n")
 
 
-## -----------------------------------------------------------------------------
+## ------Revenue Heterogeneity------
 # 1. Determine base year (Year 1) revenue for each organization
 base_revenue_data <- data |>
   group_by(organization_ein) |>
@@ -395,32 +396,17 @@ cat("PNG saved: revenue_quintile_plot.png\n")
 
 ## -----------------------------------------------------------------------------
 # Revenue Results data table
-formatted_quintile_table <- quintile_summary |>
-  mutate(
-    # Add significance stars
-    Significance = case_when(
-      P_Value < 0.001 ~ "***",
-      P_Value < 0.01 ~ "**",
-      P_Value < 0.05 ~ "*",
-      TRUE ~ ""
-    ),
-    # Add confidence intervals
-    CI_lower = Coefficient - 1.96 * Std_Error,
-    CI_upper = Coefficient + 1.96 * Std_Error,
-    CI_95 = paste0("[", round(CI_lower, 4), ", ", round(CI_upper, 4), "]")
-  ) |>
-  select(Quintile, Coefficient, Std_Error, CI_95, P_Value, Significance, N_Obs) |>
-  flextable() |>
-  set_header_labels(
-    Quintile = "Revenue Quintile",
-    Coefficient = "Coefficient",
-    Std_Error = "Std. Error",
-    CI_95 = "95% CI",
-    P_Value = "P-Value",
-    Significance = "Sig.",
-    N_Obs = "N"
-  ) |>
-  colformat_double(j = c("Coefficient", "Std_Error", "P_Value"), digits = 4) |>
+formatted_quintile_table <- modelsummary(
+  quintile_results,
+  stars = TRUE,
+  gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: organization_ein"),
+  coef_rename = c(
+    "gdp_change_percent" = "GDP Change %",
+    "log_total_revenue" = "Log(Revenue)"
+  ),
+  title = "GDP Effect by Organization Revenue Size (Quintiles)",
+  output = "flextable"
+) |>
   autofit() |>
   theme_vanilla() |>
   font(fontname = "Times New Roman", part = "all") |>

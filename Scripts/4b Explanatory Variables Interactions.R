@@ -86,3 +86,53 @@ save_as_docx(
     interaction_table,
     path = "../Outputs/4b-explanatory_variables_interactions.docx"
 )
+#------------------------------------------------------------------------------
+# 6. Combined Interaction Regression
+# Run a single regression explicitly writing out all variables for readability
+combined_model <- feols(
+    log_total_program_expenses ~ gdp_change_percent * (
+        log_donation_revenue +
+            log_fundraising_revenue +
+            log_government_revenue +
+            log_membership_revenue +
+            log_investment_revenue +
+            log_other_revenue
+    ) | year + state + industry + organization_ein,
+    data = data
+)
+
+# Create a separate output table for the combined model
+combined_table <- modelsummary(
+    list("Combined Interaction" = combined_model),
+    stars = TRUE,
+    gof_map = c("nobs", "r.squared", "FE: year", "FE: state", "FE: industry", "FE: organization_ein"),
+    coef_rename = c(
+        "gdp_change_percent" = "GDP Change %",
+        "log_donation_revenue" = "Log(Donations)",
+        "log_fundraising_revenue" = "Log(Fundraising)",
+        "log_government_revenue" = "Log(Govt Grants)",
+        "log_membership_revenue" = "Log(Membership)",
+        "log_investment_revenue" = "Log(Investment)",
+        "log_other_revenue" = "Log(Other)",
+        "gdp_change_percent:log_donation_revenue" = "GDP Change % x Log(Donations)",
+        "gdp_change_percent:log_fundraising_revenue" = "GDP Change % x Log(Fundraising)",
+        "gdp_change_percent:log_government_revenue" = "GDP Change % x Log(Govt Grants)",
+        "gdp_change_percent:log_membership_revenue" = "GDP Change % x Log(Membership)",
+        "gdp_change_percent:log_investment_revenue" = "GDP Change % x Log(Investment)",
+        "gdp_change_percent:log_other_revenue" = "GDP Change % x Log(Other)"
+    ),
+    title = "Combined Interaction Effects: All Variables on GDP Change %",
+    output = "flextable"
+) |>
+    autofit() |>
+    theme_vanilla() |>
+    font(fontname = "Times New Roman", part = "all") |>
+    bold(part = "header")
+
+print(combined_table)
+
+# Export our independent combined document
+save_as_docx(
+    combined_table,
+    path = "../Outputs/4b2-combined_interactions.docx"
+)

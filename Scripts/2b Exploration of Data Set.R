@@ -8,9 +8,7 @@ library(officer) # For exporting to Word documents
 # Load data
 final_org_data <- readRDS("../Final_Data/final_data_set.rds")
 
-#--------------------------
-# SUMMARY STATISTICS TABLE
-#--------------------------
+#-------SUMMARY STATISTICS TABLE--------
 # 1. Variable Descriptions
 # Creating a data frame to document our variables
 variable_descriptions <- data.frame(
@@ -138,9 +136,7 @@ print(
     target = "../Outputs/5-Exploratory_Data_Analysis_summary_statistics.docx"
 )
 
-#--------------------------
-# EXPLORATORY VISUALIZATIONS
-#--------------------------
+#-------------------------- EXPLORATORY VISUALIZATIONS--------------------------
 # Disable scientific notation globally for this session
 options(scipen = 999)
 
@@ -210,9 +206,7 @@ ggsave(
     dpi = 300
 )
 
-#--------------------------
-# INDUSTRY DISTRIBUTION TABLE
-#--------------------------
+#--------------------------INDUSTRY DISTRIBUTION TABLE--------------------------
 # Create a mapping of industry names to their corresponding letters and count observations
 industry_distribution <- final_org_data |>
     group_by(industry) |>
