@@ -68,9 +68,10 @@ cat("\nSuccessful regressions:", length(industry_results), "\n")
 
 
 ## ----display-results----------------------------------------------------------
-# Create a summary table of coefficients for gdp_change_percent across industries
+# Create a summary table of coefficients for gdp_change_percent and log_total_revenue across industries
 summary_table <- data.frame(
   Industry = character(),
+  Term = character(),
   Coefficient = numeric(),
   Std_Error = numeric(),
   P_Value = numeric(),
@@ -92,27 +93,46 @@ for (ind in names(industry_results)) {
   if ("gdp_change_percent" %in% rownames(coef_summary)) {
     summary_table <- rbind(summary_table, data.frame(
       Industry = ind,
+      Term = "GDP Change %",
       Coefficient = coef_summary["gdp_change_percent", "Estimate"],
       Std_Error = coef_summary["gdp_change_percent", "Std. Error"],
       P_Value = coef_summary["gdp_change_percent", "Pr(>|t|)"],
       N_Obs = model$nobs
     ))
   }
+  
+  # Also extract log_total_revenue
+  if ("log_total_revenue" %in% rownames(coef_summary)) {
+    summary_table <- rbind(summary_table, data.frame(
+      Industry = ind,
+      Term = "Log(Revenue)",
+      Coefficient = coef_summary["log_total_revenue", "Estimate"],
+      Std_Error = coef_summary["log_total_revenue", "Std. Error"],
+      P_Value = coef_summary["log_total_revenue", "Pr(>|t|)"],
+      N_Obs = model$nobs
+    ))
+  }
 }
 
-# SORTING STEP: Arrange by Coefficient Descending (Highest at top)
-# This ensures the table order matches the visual order in the graph
+# SORTING STEP: Sort industries by the GDP Change % coefficient
+industry_order <- summary_table |>
+  filter(Term == "GDP Change %") |>
+  arrange(desc(Coefficient)) |>
+  pull(Industry)
+
+# Reorder the table
 summary_table <- summary_table |>
-  arrange(desc(Coefficient))
+  mutate(Industry = factor(Industry, levels = industry_order)) |>
+  arrange(Industry, Term)
 
 # Display the table
 kable(summary_table,
   digits = 4,
-  caption = "GDP Change Percent Coefficient by Industry (Sorted by Effect Size)"
+  caption = "Coefficients by Industry (Sorted by GDP Change % Effect Size)"
 )
 
 
-## ----visualize-heterogeneity, fig.width=10, fig.height=8----------------------
+## ----visualize-heterogeneity, fig.width=12, fig.height=8----------------------
 # Only create plot if we have results
 if (nrow(summary_table) > 0) {
   # Create confidence intervals and significance indicator
@@ -120,37 +140,43 @@ if (nrow(summary_table) > 0) {
     mutate(
       CI_lower = Coefficient - 1.96 * Std_Error,
       CI_upper = Coefficient + 1.96 * Std_Error,
-      Significant = ifelse(P_Value < 0.05, "Yes", "No")
+      Significant = factor(case_when(
+        P_Value < 0.05 ~ "p < 0.05",
+        P_Value < 0.10 ~ "p < 0.10",
+        TRUE ~ "Not Significant"
+      ), levels = c("p < 0.05", "p < 0.10", "Not Significant"))
     )
 
   # LOCK ORDER: Set factor levels to match the sorted table.
   # We reverse() the order because ggplot's coord_flip() puts the last level at the top.
   # This ensures Table Row 1 (Highest) appears at the Top of the Graph.
-  summary_table$Industry <- factor(summary_table$Industry, levels = rev(summary_table$Industry))
+  summary_table$Industry <- factor(summary_table$Industry, levels = rev(industry_order))
 
   # Create coefficient plot
-  # Note: removed reorder() since we explicitly set levels above
+  # We use facet_wrap to place both coefficients side-by-side cleanly
   ggplot(summary_table, aes(x = Industry, y = Coefficient)) +
     geom_point(aes(color = Significant), size = 3) +
     geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper, color = Significant),
       width = 0.3
     ) +
     geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+    facet_wrap(~ Term, scales = "free_x") +
     coord_flip() +
     theme_minimal() +
     theme(
       axis.text.y = element_text(size = 10),
       plot.title = element_text(size = 14, face = "bold"),
-      plot.subtitle = element_text(size = 11)
+      plot.subtitle = element_text(size = 11),
+      strip.text = element_text(size = 12, face = "bold")
     ) +
     labs(
-      title = "Effect of GDP Change on Program Expenses by Industry",
-      subtitle = "With 95% Confidence Intervals (Sorted by Magnitude)",
+      title = "Effect of GDP and Revenue on Program Expenses by Industry",
+      subtitle = "With 95% Confidence Intervals (Industries sorted by GDP Change % Magnitude)",
       x = "Industry",
       y = "Coefficient (Effect on Log Program Expenses)",
-      color = "Significant at 5%"
+      color = "Significance Level"
     ) +
-    scale_color_manual(values = c("No" = "gray60", "Yes" = "steelblue"))
+    scale_color_manual(values = c("Not Significant" = "gray60", "p < 0.10" = "skyblue", "p < 0.05" = "steelblue"))
 } else {
   cat("No results to plot - check if regressions ran successfully\n")
 }
@@ -339,7 +365,11 @@ if (nrow(quintile_summary) > 0) {
     mutate(
       CI_lower = Coefficient - 1.96 * Std_Error,
       CI_upper = Coefficient + 1.96 * Std_Error,
-      Significant = ifelse(P_Value < 0.05, "Yes", "No"),
+      Significant = factor(case_when(
+        P_Value < 0.05 ~ "p < 0.05",
+        P_Value < 0.10 ~ "p < 0.10",
+        TRUE ~ "Not Significant"
+      ), levels = c("p < 0.05", "p < 0.10", "Not Significant")),
       # Ensure proper ordering
       Quintile = factor(Quintile, levels = c(
         "Q1 (Smallest)", "Q2 (Small)", "Q3 (Medium)",
@@ -365,9 +395,9 @@ if (nrow(quintile_summary) > 0) {
       subtitle = "Measured by Revenue Quintiles (95% Confidence Intervals)",
       x = "Revenue Quintile",
       y = "Coefficient (Effect on Log Program Expenses)",
-      color = "Significant at 5%"
+      color = "Significance Level"
     ) +
-    scale_color_manual(values = c("No" = "gray60", "Yes" = "steelblue"))
+    scale_color_manual(values = c("Not Significant" = "gray60", "p < 0.10" = "skyblue", "p < 0.05" = "steelblue"))
 } else {
   cat("No results to plot\n")
 }
