@@ -116,3 +116,45 @@ save_as_docx(
     comparison_table_org_fe,
     path = "../Outputs/4-explanatory_variables_experiment_org_fe.docx"
 )
+
+#------------------------------------------------------------------------------
+# 8. Regressions Without Organization Fixed Effects
+model_list_no_fe <- list()
+
+for (var in dependent_vars) {
+    # Create formula: var ~ gdp_change_percent | Fixed Effects
+    fml_str <- paste(
+        var, "~ gdp_change_percent | year + state + industry"
+    )
+    fml <- as.formula(fml_str)
+
+    # Run regression
+    model <- feols(fml, data = regression_data)
+
+    # Store with a nice name
+    model_name <- var_titles[var]
+    model_list_no_fe[[model_name]] <- model
+}
+
+# 9. Output Results (No Organization FE)
+comparison_table_no_fe <- modelsummary(
+    model_list_no_fe,
+    stars = TRUE,
+    gof_map = c(
+        "nobs", "r.squared", "FE: year", "FE: state", "FE: industry"
+    ),
+    coef_rename = c("gdp_change_percent" = "GDP Change %"),
+    title = "Cyclicality of Non-Profit Revenue Sources (No Organization FE)",
+    output = "flextable"
+) |>
+    autofit() |>
+    theme_vanilla() |>
+    font(fontname = "Times New Roman", part = "all") |>
+    bold(part = "header")
+
+print(comparison_table_no_fe)
+
+save_as_docx(
+    comparison_table_no_fe,
+    path = "../Outputs/4-explanatory_variables_experiment_no_fe.docx"
+)
