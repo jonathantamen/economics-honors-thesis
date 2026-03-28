@@ -33,6 +33,7 @@ bad_org_ids <- org_data |> # Thanks, AI.
 negatives_to_remove <- c(
   # Demand side variables
   "total_program_expenses",
+  "total_expenses",
   # Supply side variables
   "donation_revenue",
   "membership_revenue",
@@ -65,6 +66,7 @@ final_org_data <- org_data |>
     industry = "activity_category",
     # Key variables
     total_program_expenses = "F9_09_EXP_TOT_PROG",
+    total_expenses = "F9_09_EXP_TOT_TOT",
     total_revenue = "F9_08_REV_TOT_TOT",
 
     # Explanatory variables
@@ -107,6 +109,7 @@ final_org_data <- org_data |>
     year,
     industry,
     total_program_expenses,
+    total_expenses,
     total_revenue,
     donation_revenue,
     fundraising_revenue,
@@ -137,6 +140,7 @@ final_org_data <- org_data |>
     across(
       c(
         total_program_expenses,
+        total_expenses,
         total_revenue,
         donation_revenue,
         fundraising_revenue,

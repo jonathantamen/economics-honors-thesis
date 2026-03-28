@@ -39,18 +39,17 @@ Format: A data frame with 5 million observations across
 ~~- [] Try again with GDP per capita in place of real GDP, of each state. ~~
 - [x] Don't need to include company/EIN fixed effects in all models. Just try without first. <!-- Maybe I can do once with, then repeat identical regression without? -->
 #data_exploration
-- [ ] Include sum of revenues, expenses divided by type across all the organizations. (i.e. what is the split between donations, fundraising, government revenues and the split between program expenses, staff, assets expenses).
-    - [ ] Add this to #final_paper document
+-~~ [] Include sum of revenues, expenses divided by type across all the organizations. (i.e. what is the split between donations, fundraising, government revenues and the split between program expenses, staff, assets expenses).
+    - [ ] Add this to #final_paper document~~
+- [x] Create graphic of change in State GDP over time.
 #regressions
 - [x] Start testing explanatory variables (`) using [Regression 4]([[/Scripts/3a Preliminary Results.Rmd]]) from my preliminary results.
 - [x] Explore using an `interaction variable` with COVID-19 for financial decision-making changes of organizations. So, before/after COVID-19 to see if something changed in response to COVID-19 in how organizations respond to changing GDP.
-- [ ] Explore using an `interaction variable` with federal policies for financial decision-making changes of organizations. So, funding to SNAP benefits, subsidized housing, research grants, interest rates.
 #analysis
-- [ ] Finish interpreting all results from all regressions.
-- [ ] Analyze results in terms of statistical significance, economic logic, and topic relevance.
-- [ ] Produce “Preliminary Results” Document for review.
+- [x] Finish interpreting all results from all regressions.
+- [x] Analyze results in terms of statistical significance, economic logic, and topic relevance.
+- [x] Produce “Preliminary Results” Document for review.
 #final_paper
 - [ ] Format all tables to match Chicago format
-- [ ] Insert links to tables/figures, instead of textual references
+- [x] Insert links to tables/figures, instead of textual references
 - [ ] Create bibliography and update footnotes to correct repeats.
-- [ ] 

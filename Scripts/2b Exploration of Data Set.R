@@ -268,3 +268,44 @@ print(
     doc_industry,
     target = "../Outputs/1-Industry_Distribution_Table.docx"
 )
+
+#-------------------------- STATE GDP TRENDS GRAPHIC ---------------------------
+# Extract unique state-year GDP data to prevent over-plotting a line for every single organization
+state_gdp_data <- final_org_data |>
+    select(state, year, gdp_change_percent) |>
+    distinct() |>
+    drop_na()
+
+# Build a line chart for all states
+state_gdp_plot <- ggplot(state_gdp_data, aes(x = year, y = gdp_change_percent, group = state)) +
+    # Draw the connecting lines in a neutral gray so they don't visually break mid-segment
+    geom_line(color = "gray70", alpha = 0.5) +
+    # Add a bolder baseline at 0 to easily distinguish positive/negative
+    geom_hline(yintercept = 0, color = "black", linewidth = 1.2) +
+    # Overlay points colored by whether that specific year's economy grew or shrank
+    geom_point(aes(color = gdp_change_percent >= 0), size = 1.5, alpha = 0.7) +
+    # Manually assign blue and red to the TRUE/FALSE conditions
+    scale_color_manual(
+        values = c("TRUE" = "royalblue", "FALSE" = "firebrick"),
+        labels = c("TRUE" = "Growth (Positive)", "FALSE" = "Contraction (Negative)"),
+        name = "Trajectory"
+    ) +
+    theme_minimal() +
+    labs(
+        title = "State GDP Growth Trends Over Time",
+        subtitle = "Each line represents the economic growth trajectory of one US state",
+        x = "Year",
+        y = "GDP Change (%)"
+    ) +
+    scale_x_continuous(breaks = scales::pretty_breaks())
+
+print(state_gdp_plot)
+
+# Save the visualization
+ggsave(
+    filename = "../Outputs/2b-State_GDP_Trends.png",
+    plot = state_gdp_plot,
+    width = 8,
+    height = 6,
+    dpi = 300
+)
