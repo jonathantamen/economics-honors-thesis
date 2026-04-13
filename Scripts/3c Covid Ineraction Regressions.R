@@ -40,37 +40,55 @@ org_expansion_robustness <- data_set |>
   select(organization_ein, expanded_pre_covid) |>
   filter(!is.na(expanded_pre_covid))
 
-# 2. Merge back and create variables for regression
+# 2. Create the baseline dataset (used later for Post-Covid panel models)
 regression_data <- data_set |>
-  # Join the expansion info (left join keeps all orgs, but non-matching ones get NA for expansion)
-  left_join(org_expansion, by = "organization_ein") |>
-  left_join(org_expansion_robustness, by = "organization_ein") |>
   mutate(
     # Post-Covid Dummy (Year >= 2020)
     post_covid = ifelse(year >= 2020, 1, 0)
   )
 
-# Check how many organizations we successfully labeled
-cat("Number of organizations with expansion data:", sum(!is.na(regression_data$expanded_during_covid)), "\n")
-
-
 ## -----------------------------------------------------------------------------
+# 3. Create isolated datasets purely for the Logistic model
+# Instead of polluting the big dataset, we inner_join to only keep the organizations we are analyzing
+data_covid <- data_set |>
+  inner_join(org_expansion, by = "organization_ein") |>
+  # Drop NAs safely for the marginaleffects package
+  drop_na(expanded_during_covid, log_donation_revenue, log_fundraising_revenue, log_government_revenue, log_membership_revenue, log_investment_revenue, log_other_revenue)
+
+data_pre_covid <- data_set |>
+  inner_join(org_expansion_robustness, by = "organization_ein") |>
+  drop_na(expanded_pre_covid, log_donation_revenue, log_fundraising_revenue, log_government_revenue, log_membership_revenue, log_investment_revenue, log_other_revenue)
+
+# Linear Probability Model (LPM): Predicting probabilities directly
 model_expansion_predictors <- feols(
-  expanded_during_covid ~ log_donation_revenue + log_fundraising_revenue + log_government_revenue +
-    log_membership_revenue + log_investment_revenue + log_other_revenue | year + state + industry,
-  data = regression_data
+  expanded_during_covid ~ 
+    log_donation_revenue + 
+    log_fundraising_revenue +
+    log_government_revenue +
+    log_membership_revenue +
+    log_investment_revenue +
+    log_other_revenue |
+    year + state + industry,
+  data = data_covid
 )
 
 model_expansion_predictors_robustness <- feols(
-  expanded_pre_covid ~ log_donation_revenue + log_fundraising_revenue + log_government_revenue +
-    log_membership_revenue + log_investment_revenue + log_other_revenue | year + state + industry,
-  data = regression_data
+  expanded_pre_covid ~ 
+    log_donation_revenue + 
+    log_fundraising_revenue + 
+    log_government_revenue +
+    log_membership_revenue + 
+    log_investment_revenue + 
+    log_other_revenue | 
+    year + state + industry,
+  data = data_pre_covid
 )
 
 summary(model_expansion_predictors)
 summary(model_expansion_predictors_robustness)
 
 ## -----------------------------------------------------------------------------
+# Pass the LPM models directly to modelsummary
 models_list <- list(
   "Covid Expansion" = model_expansion_predictors,
   "Pre-Covid Robustness" = model_expansion_predictors_robustness

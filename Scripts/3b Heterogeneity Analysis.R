@@ -100,7 +100,7 @@ for (ind in names(industry_results)) {
       N_Obs = model$nobs
     ))
   }
-  
+
   # Also extract log_total_revenue
   if ("log_total_revenue" %in% rownames(coef_summary)) {
     summary_table <- rbind(summary_table, data.frame(
@@ -154,14 +154,13 @@ if (nrow(summary_table) > 0) {
 
   # Create coefficient plot
   # We use facet_wrap to place both coefficients side-by-side cleanly
-  ggplot(summary_table, aes(x = Industry, y = Coefficient)) +
+  ggplot(summary_table, aes(x = Coefficient, y = Industry)) +
     geom_point(aes(color = Significant), size = 3) +
-    geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper, color = Significant),
+    geom_errorbar(aes(xmin = CI_lower, xmax = CI_upper, color = Significant),
       width = 0.3
     ) +
-    geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-    facet_wrap(~ Term, scales = "free_x") +
-    coord_flip() +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+    facet_wrap(~Term, scales = "free_x") +
     theme_minimal() +
     theme(
       axis.text.y = element_text(size = 10),
